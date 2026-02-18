@@ -1,0 +1,42 @@
+import '../models/chip_model.dart';
+
+List<ChipModel> getInitialChips() {
+  final List<Map<String, Object>> data = [
+    // 🔴 Player 2 (top)
+    {'owner': 2, 'x': 0, 'y': 0, 'poly': {4: 78}},
+    {'owner': 2, 'x': 2, 'y': 0, 'poly': {3: 66}},
+    {'owner': 2, 'x': 4, 'y': 0, 'poly': {2: -45}},
+    {'owner': 2, 'x': 6, 'y': 0, 'poly': {1: -55}},
+    {'owner': 2, 'x': 1, 'y': 1, 'poly': {4: 36}},
+    {'owner': 2, 'x': 3, 'y': 1, 'poly': {2: 28}},
+    {'owner': 2, 'x': 5, 'y': 1, 'poly': {1: -15}},
+    {'owner': 2, 'x': 7, 'y': 1, 'poly': {4: -21}},
+    {'owner': 2, 'x': 0, 'y': 2, 'poly': {2: 10}},
+    {'owner': 2, 'x': 2, 'y': 2, 'poly': {1: 6}},
+    {'owner': 2, 'x': 4, 'y': 2, 'poly': {4: 1}},
+    {'owner': 2, 'x': 6, 'y': 2, 'poly': {3: -3}},
+
+    // 🔵 Player 1 (bottom)
+    {'owner': 1, 'x': 1, 'y': 7, 'poly': {1: -55}},
+    {'owner': 1, 'x': 3, 'y': 7, 'poly': {2: -45}},
+    {'owner': 1, 'x': 5, 'y': 7, 'poly': {3: 66}},
+    {'owner': 1, 'x': 7, 'y': 7, 'poly': {4: 78}},
+    {'owner': 1, 'x': 0, 'y': 6, 'poly': {4: -21}},
+    {'owner': 1, 'x': 2, 'y': 6, 'poly': {1: -15}},
+    {'owner': 1, 'x': 4, 'y': 6, 'poly': {2: 28}},
+    {'owner': 1, 'x': 6, 'y': 6, 'poly': {4: 36}},
+    {'owner': 1, 'x': 1, 'y': 5, 'poly': {3: -3}},
+    {'owner': 1, 'x': 3, 'y': 5, 'poly': {4: 1}},
+    {'owner': 1, 'x': 5, 'y': 5, 'poly': {1: 6}},
+    {'owner': 1, 'x': 7, 'y': 5, 'poly': {2: 10}},
+  ];
+
+  return data
+      .map((e) => ChipModel(
+            owner: e['owner'] as int,
+            x: e['x'] as int,
+            y: e['y'] as int,
+            terms: e['poly'] as Map<int, int>, // keep as integers
+          ))
+      .toList();
+}
