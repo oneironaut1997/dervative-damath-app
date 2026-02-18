@@ -56,9 +56,9 @@ class GameLogic {
   ChipModel? selectedChip;
   int currentPlayer = 1; // 1 = blue, 2 = red
 
-  // Score tracking
-  int player1Score = 0;
-  int player2Score = 0;
+  // Score tracking (now using double for PDF-compliant scoring)
+  double player1Score = 0;
+  double player2Score = 0;
 
   // Last move result for feedback
   MoveResult? lastMoveResult;
@@ -218,7 +218,8 @@ class GameLogic {
       return false;
     }
 
-    // Regular chip: move forward only, 1 square
+    // Regular chip: diagonal only, 1 square
+    // Damath rules: chips move diagonally to capture/interact
     return dx.abs() == 1 && dy == direction;
   }
 
@@ -242,6 +243,9 @@ class GameLogic {
   /// Check if capture is possible
   bool _canCapture(int x, int y, int direction) {
     if (selectedChip == null) return false;
+    
+    // Check bounds first
+    if (x < 0 || x > 7 || y < 0 || y > 7) return false;
 
     final dx = x - selectedChip!.x;
     final dy = y - selectedChip!.y;
@@ -251,8 +255,10 @@ class GameLogic {
       return _canCaptureDama(x, y, dx, dy);
     }
 
-    // Regular chip: forward capture only
-    if (dx.abs() != 2 || dy != 2 * direction) return false;
+    // Regular chip: can capture forward AND backward
+    // Allow both forward (direction) and backward (-direction) captures
+    if (dx.abs() != 2) return false;
+    if (dy != 2 * direction && dy != 2 * -direction) return false;
 
     final midX = (x + selectedChip!.x) ~/ 2;
     final midY = (y + selectedChip!.y) ~/ 2;
@@ -263,6 +269,8 @@ class GameLogic {
 
   /// Check if Dama can capture (in any direction)
   bool _canCaptureDama(int x, int y, int dx, int dy) {
+    // Check bounds
+    if (x < 0 || x > 7 || y < 0 || y > 7) return false;
     if (dx.abs() != 2 || dy.abs() != 2) return false;
     if (isOccupied(x, y)) return false;
 
@@ -316,19 +324,6 @@ class GameLogic {
     selectedChip!.x = x;
     selectedChip!.y = y;
 
-    // Check for Dama promotion
-    final promoted = _checkAndPromoteDama(x, y);
-
-    // Calculate score
-    final score = ScoreCalculator.calculate(
-      isCorrectDerivative: true,
-      isCapture: false,
-      captureCount: 0,
-      isDamaPromotion: promoted,
-    );
-
-    _updateScore(score);
-
     // Record position for draw detection
     _recordPosition();
 
@@ -343,27 +338,30 @@ class GameLogic {
 
   /// Execute a capture
   void _executeCapture(int x, int y) {
-    int midX, midY;
+    // Check for Dama promotion before capture (Dama can capture from promotion row)
+    final willPromote = _checkAndPromoteDama(x, y);
+    
+    int captureMidX, captureMidY;
 
     if (selectedChip!.isDama) {
-      midX = (x + selectedChip!.x) ~/ 2;
-      midY = (y + selectedChip!.y) ~/ 2;
+      captureMidX = (x + selectedChip!.x) ~/ 2;
+      captureMidY = (y + selectedChip!.y) ~/ 2;
     } else {
-      midX = (x + selectedChip!.x) ~/ 2;
-      midY = (y + selectedChip!.y) ~/ 2;
+      captureMidX = (x + selectedChip!.x) ~/ 2;
+      captureMidY = (y + selectedChip!.y) ~/ 2;
     }
 
-    final midChip = chipAt(midX, midY);
+    final capturedChip = chipAt(captureMidX, captureMidY);
 
-    if (midChip == null || !isOpponent(selectedChip!, midChip)) {
+    if (capturedChip == null || !isOpponent(selectedChip!, capturedChip)) {
       lastErrorMessage = 'No opponent to capture';
       return;
     }
 
-    _logger.info('Executing capture from (${selectedChip!.x},${selectedChip!.y}) to ($x, $y), capturing at ($midX, $midY)');
+    _logger.info('Executing capture from (${selectedChip!.x},${selectedChip!.y}) to ($x, $y), capturing at ($captureMidX, $captureMidY)');
 
     // Remove captured chip
-    chips.remove(midChip);
+    chips.remove(capturedChip);
 
     // Move the capturing chip
     selectedChip!.x = x;
@@ -372,8 +370,8 @@ class GameLogic {
     // Increment chain depth
     captureChainDepth++;
 
-    // Check for Dama promotion after capture
-    final promoted = _checkAndPromoteDama(x, y);
+    // Check for Dama promotion after capture (if not already promoted)
+    final promoted = willPromote || _checkAndPromoteDama(x, y);
 
     // Check if another capture is available
     final canContinue = _hasAnotherCapture();
@@ -389,15 +387,40 @@ class GameLogic {
       currentChainChip = null;
     }
 
-    // Calculate score with chain captures
-    final score = ScoreCalculator.calculate(
-      isCorrectDerivative: true,
-      isCapture: true,
-      captureCount: captureChainDepth,
-      isDamaPromotion: promoted,
-    );
+    // Calculate score with chain captures using PDF specification
+    double moveScore = 0;
+    
+    // For captures, we need to calculate per PDF spec
+    final operationSymbol = getOperationAt(x, y);
+    if (capturedChip != null && operationSymbol != null) {
+      // Check if either chip is Dama for multiplier
+      bool isTakerDama = selectedChip?.isDama ?? false;
+      bool isTakenDama = capturedChip.isDama;
+      
+      moveScore = ScoreCalculator.calculateScorePDF(
+        movingChipTerms: selectedChip!.terms,
+        targetChipTerms: capturedChip.terms,
+        operationSymbol: operationSymbol,
+        targetX: x,
+        targetY: y,
+        isCapture: true,
+        isDamaPromotion: promoted,
+      );
+      
+      // Apply Dama multipliers per PDF spec
+      if (isTakerDama && isTakenDama) {
+        moveScore *= 4; // Both are Dama
+      } else if (isTakerDama || isTakenDama) {
+        moveScore *= 2; // One is Dama
+      }
+    }
 
-    _updateScore(score);
+    // Add chain capture bonus (1 point per additional capture)
+    if (captureChainDepth > 1) {
+      moveScore += (captureChainDepth - 1) * 1;
+    }
+
+    _updateScore(moveScore);
 
     // Record position for draw detection
     _recordPosition();
@@ -415,36 +438,63 @@ class GameLogic {
   bool _hasAnotherCapture() {
     if (selectedChip == null) return false;
 
-    final directions = selectedChip!.isDama
-        ? [
-            [-2, -2], [2, -2], [-2, 2], [2, 2] // All diagonal directions for Dama
-          ]
-        : [
-            [currentPlayer == 1 ? -2 : 2, currentPlayer == 1 ? -2 : 2] // Forward diagonal for regular
-          ];
-
-    for (final dir in directions) {
-      final targetX = selectedChip!.x + dir[0];
-      final targetY = selectedChip!.y + dir[1];
-
-      if (_canCapture(targetX, targetY, currentPlayer == 1 ? -1 : 1)) {
-        return true;
+    // Dama can capture in all diagonal directions
+    if (selectedChip!.isDama) {
+      final directions = [
+        [-2, -2], [2, -2], [-2, 2], [2, 2]
+      ];
+      for (final dir in directions) {
+        final targetX = selectedChip!.x + dir[0];
+        final targetY = selectedChip!.y + dir[1];
+        if (_canCapture(targetX, targetY, currentPlayer == 1 ? -1 : 1)) {
+          return true;
+        }
       }
+      return false;
     }
+
+    // Regular chip: can capture forward AND backward
+    final forwardDir = currentPlayer == 1 ? -1 : 1;
+    final backwardDir = -forwardDir;
+    
+    // Check forward captures
+    final forwardCaptureX = selectedChip!.x + 2;
+    final forwardCaptureY = selectedChip!.y + 2 * forwardDir;
+    if (_canCapture(forwardCaptureX, forwardCaptureY, forwardDir)) return true;
+    
+    final forwardCaptureX2 = selectedChip!.x - 2;
+    if (_canCapture(forwardCaptureX2, forwardCaptureY, forwardDir)) return true;
+    
+    // Check backward captures
+    final backwardCaptureX = selectedChip!.x + 2;
+    final backwardCaptureY = selectedChip!.y + 2 * backwardDir;
+    if (_canCapture(backwardCaptureX, backwardCaptureY, backwardDir)) return true;
+    
+    final backwardCaptureX2 = selectedChip!.x - 2;
+    if (_canCapture(backwardCaptureX2, backwardCaptureY, backwardDir)) return true;
 
     return false;
   }
+
+  /// Check if the player must continue capturing (public getter)
+  bool get mustContinueCapturing => mustContinueCapture;
+
+  /// Get the current chain chip (the chip that must continue capturing)
+  ChipModel? get currentChainChipModel => currentChainChip;
 
   /// End the current player's turn
   void _endTurn() {
     currentPlayer = currentPlayer == 1 ? 2 : 1;
     selectedChip = null;
     captureChainDepth = 0;
+    // Reset chain capture state
+    mustContinueCapture = false;
+    currentChainChip = null;
     _logger.info('Turn ended. Current player: $currentPlayer');
   }
 
-  /// Update player score
-  void _updateScore(int score) {
+  /// Update player score (now uses double for PDF-compliant scoring)
+  void _updateScore(double score) {
     if (currentPlayer == 1) {
       player1Score += score;
     } else {
@@ -484,6 +534,7 @@ class GameLogic {
   // ==================== VALID MOVE GETTERS ====================
 
   /// Get all valid moves for a chip
+  /// This validates both geometric validity AND derivative requirements
   List<Move> getValidMoves(ChipModel chip) {
     final moves = <Move>[];
 
@@ -497,11 +548,11 @@ class GameLogic {
         [0, -1], [0, 1], [-1, 0], [1, 0],   // Orthogonals
       ]);
     } else {
-      // Regular chip: forward only
+      // Regular chip: diagonal only (forward only, but only diagonal directions)
+      // Damath rules: chips move diagonally to capture/interact with operation tiles
       final forwardDir = chip.owner == 1 ? -1 : 1;
       directions.addAll([
-        [-1, forwardDir], [1, forwardDir], // Diagonals
-        [0, forwardDir], // Forward
+        [-1, forwardDir], [1, forwardDir], // Diagonals only - no straight moves
       ]);
     }
 
@@ -541,7 +592,7 @@ class GameLogic {
           break;
         }
 
-        // Valid move position
+        // Valid move position - add to moves
         moves.add(Move(
           fromX: chip.x,
           fromY: chip.y,
@@ -566,22 +617,123 @@ class GameLogic {
       ));
     }
 
-    return moves;
+    // Filter moves to ensure derivative validation would pass
+    // This prevents AI from selecting moves that would fail during execution
+    final validatedMoves = _filterMovesByDerivativeValidation(chip, moves);
+    
+    return validatedMoves;
+  }
+
+  /// Filter moves based on derivative validation
+  /// Removes moves that fail derivative validation during execution
+  /// Also enforces that regular chips can only move DIAGONALLY (not forward/straight)
+  List<Move> _filterMovesByDerivativeValidation(ChipModel chip, List<Move> moves) {
+    final validatedMoves = <Move>[];
+    
+    for (final move in moves) {
+      // For non-Dama chips, only allow diagonal moves (not straight forward)
+      // This matches Damath rules: chips move diagonally to capture/interact
+      if (!chip.isDama) {
+        final dx = (move.toX - move.fromX).abs();
+        
+        // Only allow diagonal moves (dx == 1), NOT straight moves (dx == 0)
+        // Regular chips can only move diagonally in Damath
+        if (dx == 0) {
+          // Skip straight moves for regular chips
+          continue;
+        }
+      }
+      
+      // Get the operation at target position and check if there's an opponent chip there
+      final targetChip = chipAt(move.toX, move.toY);
+      
+      // Derivative validation is ONLY required when moving to a tile WITH an opponent chip
+      // (i.e., trying to interact with/capture that chip)
+      if (targetChip != null && isOpponent(chip, targetChip)) {
+        // There's an opponent chip at target - validate derivative
+        final computedDerivative = computeDerivative(chip);
+        final expectedResult = targetChip.terms;
+        
+        // Only include move if derivative matches
+        if (!_mapsEqual(computedDerivative, expectedResult)) {
+          // Derivative doesn't match - skip this move
+          continue;
+        }
+      }
+      
+      // For all other cases (empty tile or own chip), allow the move
+      // The chip can move forward even without an immediate derivative match
+      validatedMoves.add(move);
+    }
+    
+    return validatedMoves;
+  }
+
+  /// Check if chip has any opponent chip on board that matches its derivative
+  bool _hasOpponentWithMatchingDerivative(ChipModel chip, Map<int, int> derivative) {
+    final opponentChips = chips.where((c) => c.owner != chip.owner);
+    
+    for (final opponent in opponentChips) {
+      if (_mapsEqual(derivative, opponent.terms)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Get all available capture moves for a chip
   List<CaptureMove> getAvailableCaptures(ChipModel chip) {
     final captures = <CaptureMove>[];
 
-    final directions = chip.isDama
-        ? [
-            [-2, -2], [2, -2], [-2, 2], [2, 2]
-          ]
-        : [
-            [chip.owner == 1 ? -2 : 2, chip.owner == 1 ? -2 : 2]
-          ];
+    // Dama captures in all diagonal directions
+    if (chip.isDama) {
+      final directions = [
+        [-2, -2], [2, -2], [-2, 2], [2, 2]
+      ];
+      for (final dir in directions) {
+        final targetX = chip.x + dir[0];
+        final targetY = chip.y + dir[1];
 
-    for (final dir in directions) {
+        if (targetX < 0 || targetX > 7 || targetY < 0 || targetY > 7) continue;
+
+        final midX = (chip.x + targetX) ~/ 2;
+        final midY = (chip.y + targetY) ~/ 2;
+
+        final midChip = chipAt(midX, midY);
+        if (midChip != null && isOpponent(chip, midChip) && !isOccupied(targetX, targetY)) {
+          captures.add(CaptureMove(
+            fromX: chip.x,
+            fromY: chip.y,
+            toX: targetX,
+            toY: targetY,
+            midX: midX,
+            midY: midY,
+            capturedChip: midChip,
+          ));
+        }
+      }
+      return captures;
+    }
+
+    // Regular chip: captures forward AND backward
+    final forwardDir = chip.owner == 1 ? -1 : 1;
+    final backwardDir = -forwardDir;
+    
+    // Forward diagonal captures
+    final forwardDirections = [
+      [2, 2 * forwardDir],
+      [-2, 2 * forwardDir],
+    ];
+    
+    // Backward diagonal captures
+    final backwardDirections = [
+      [2, 2 * backwardDir],
+      [-2, 2 * backwardDir],
+    ];
+    
+    final allDirections = [...forwardDirections, ...backwardDirections];
+
+    for (final dir in allDirections) {
       final targetX = chip.x + dir[0];
       final targetY = chip.y + dir[1];
 
@@ -620,28 +772,135 @@ class GameLogic {
 
   // ==================== WIN/LOSE DETECTION ====================
 
-  /// Evaluate the game state for win/draw conditions
+  /// Gets the current score for a player.
+  double getScore(int playerNumber) {
+    return playerNumber == 1 ? player1Score : player2Score;
+  }
+
+  /// Calculates final scores including remaining chips (per PDF spec).
+  /// Call this when game ends to get accurate final scores.
+  double getFinalScore(int playerNumber) {
+    double score = playerNumber == 1 ? player1Score : player2Score;
+    
+    // Add remaining chips' values
+    final remainingChips = chips.where((c) => c.owner == playerNumber).toList();
+    for (final chip in remainingChips) {
+      for (final entry in chip.terms.entries) {
+        score += entry.value.abs();
+      }
+      // Double if Dama
+      if (chip.isDama) {
+        score *= 2;
+      }
+    }
+    
+    return score;
+  }
+
+  /// Legacy method for int score (kept for compatibility)
+  int getScoreInt(int playerNumber) {
+    return (playerNumber == 1 ? player1Score : player2Score).round();
+  }
+
+  /// Evaluates the game state for win/draw conditions using PDF scoring.
+  /// Per PDF: Player with greater accumulated total scores wins.
   void _evaluateGameState() {
+    // Check game end conditions per PDF rules:
+    // - 20-minute game period lapses (not implemented - untimed mode)
+    // - Moves are repetitive (threefold repetition)
+    // - A player has no more chips to move
+    // - An opponent's chip is 'cornered'
+    
     final opponent = currentPlayer == 1 ? 2 : 1;
 
     // Check win by elimination
     final opponentChips = chips.where((c) => c.owner == opponent).toList();
     if (opponentChips.isEmpty) {
-      _declareWinner(currentPlayer);
+      // Add remaining chips to current player's score
+      _applyEndGameScore(currentPlayer);
+      _declareWinnerByScore(currentPlayer);
       return;
     }
 
     // Check win by blocking (opponent has no valid moves)
     final opponentMoves = getAllValidMovesForPlayer(opponent);
     if (opponentMoves.isEmpty) {
-      _declareWinner(currentPlayer);
+      _applyEndGameScore(currentPlayer);
+      _declareWinnerByScore(currentPlayer);
       return;
     }
 
     // Check draw by repeated position
     if (_hasRepeatedPosition()) {
-      _declareDraw();
+      // Both players get remaining chip scores, compare
+      _applyEndGameScore(1);
+      _applyEndGameScore(2);
+      _declareDrawByScore();
       return;
+    }
+  }
+
+  /// Applies end-of-game scores from remaining chips
+  void _applyEndGameScore(int playerNumber) {
+    final remainingChips = chips.where((c) => c.owner == playerNumber).toList();
+    
+    for (final chip in remainingChips) {
+      double chipValue = 0;
+      for (final entry in chip.terms.entries) {
+        chipValue += entry.value.abs();
+      }
+      // Double if Dama
+      if (chip.isDama) {
+        chipValue *= 2;
+      }
+      
+      if (playerNumber == 1) {
+        player1Score += chipValue;
+      } else {
+        player2Score += chipValue;
+      }
+    }
+    
+    _logger.info('End game chips added for Player $playerNumber');
+  }
+
+  /// Declare winner based on accumulated score (per PDF)
+  void _declareWinnerByScore(int playerNumber) {
+    gamePhase = GamePhase.won;
+    winner = playerNumber == 1
+        ? PlayerModel(name: 'Player 1', color: PlayerColor.blue)
+        : PlayerModel(name: 'Player 2', color: PlayerColor.red);
+    
+    final p1Final = getFinalScore(1);
+    final p2Final = getFinalScore(2);
+    
+    // Determine winner by final score
+    if (p1Final > p2Final) {
+      gamePhase = GamePhase.won;
+      winner = PlayerModel(name: 'Player 1', color: PlayerColor.blue);
+    } else if (p2Final > p1Final) {
+      gamePhase = GamePhase.won;
+      winner = PlayerModel(name: 'Player 2', color: PlayerColor.red);
+    } else {
+      gamePhase = GamePhase.draw;
+      winner = null;
+    }
+    
+    _logger.info('Game over! Final scores - Player 1: $p1Final, Player 2: $p2Final. Winner: ${winner?.name ?? "Draw"}');
+  }
+
+  /// Declare draw when scores are equal
+  void _declareDrawByScore() {
+    final p1Final = getFinalScore(1);
+    final p2Final = getFinalScore(2);
+    
+    if (p1Final == p2Final) {
+      gamePhase = GamePhase.draw;
+      winner = null;
+      _logger.info('Game over! Draw by equal scores: $p1Final');
+    } else {
+      // One player has higher score
+      _declareWinnerByScore(p1Final > p2Final ? 1 : 2);
     }
   }
 
@@ -868,11 +1127,6 @@ class GameLogic {
     return result;
   }
 
-  /// Gets the current score for a player.
-  int getScore(int playerNumber) {
-    return playerNumber == 1 ? player1Score : player2Score;
-  }
-
   /// Resets the game to initial state.
   void reset() {
     chips = getInitialChips();
@@ -905,5 +1159,47 @@ class GameLogic {
   /// Get Dama count for a player
   int getDamaCount(int player) {
     return chips.where((chip) => chip.owner == player && chip.isDama).length;
+  }
+
+  /// Execute a move from the AI opponent.
+  /// This method handles selecting the chip and moving it to the destination.
+  void executeMove(Move move) {
+    // If game is over, ignore
+    if (gamePhase != GamePhase.playing) return;
+
+    // First, clear any existing selection to ensure clean state
+    selectedChip = null;
+
+    // Find and select the chip at the from position
+    final chip = chipAt(move.fromX, move.fromY);
+    if (chip == null) {
+      _logger.warning('Cannot execute move: no chip at (${move.fromX}, ${move.fromY})');
+      return;
+    }
+    
+    if (chip.owner != currentPlayer) {
+      _logger.warning('Cannot execute move: chip at (${move.fromX}, ${move.fromY}) belongs to player ${chip.owner}, but current player is $currentPlayer');
+      return;
+    }
+
+    // Verify this exact move is still valid (executability check)
+    // This ensures derivative validation passes before attempting execution
+    final validMoves = getValidMoves(chip);
+    final isValidMove = validMoves.any((m) => 
+      m.toX == move.toX && m.toY == move.toY);
+    
+    if (!isValidMove) {
+      _logger.warning('Move from (${move.fromX}, ${move.fromY}) to (${move.toX}, ${move.toY}) failed executability check - derivative validation likely failed');
+      return;
+    }
+
+    // Select the chip
+    selectedChip = chip;
+    _logger.info('AI selected chip at (${move.fromX}, ${move.fromY}), attempting to move to (${move.toX}, ${move.toY})');
+
+    // Execute the move via tile tap
+    onTileTap(move.toX, move.toY);
+    
+    _logger.info('AI move completed. New position: (${chip.x}, ${chip.y}), currentPlayer is now $currentPlayer');
   }
 }

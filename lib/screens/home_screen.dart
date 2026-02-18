@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
+import 'how_to_play_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -48,6 +49,20 @@ class HomeScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) => const GameScreen(mode: 'PvP'),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _MainButton(
+                  label: 'How to Play',
+                  icon: Icons.help_outline,
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HowToPlayScreen(),
                       ),
                     );
                   },

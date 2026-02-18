@@ -13,7 +13,7 @@ class GameScreen extends StatelessWidget {
             Text(mode == 'PvC' ? 'Derivative Damath – PvC' : 'Derivative Damath – PvP'),
         centerTitle: true,
       ),
-      body: const Center(child: GameBoard()),
+      body: GameBoard(mode: mode),
     );
   }
 }

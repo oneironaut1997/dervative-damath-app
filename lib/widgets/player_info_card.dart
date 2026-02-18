@@ -37,10 +37,10 @@ class PlayerInfoCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: isActive ? _playerColor.withValues(alpha: 0.1) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isActive ? _playerColor : Colors.grey[300]!,
           width: isActive ? 2 : 1,
@@ -50,8 +50,8 @@ class PlayerInfoCard extends StatelessWidget {
             color: isActive
                 ? _playerColor.withValues(alpha: 0.2)
                 : Colors.black12,
-            blurRadius: isActive ? 12 : 8,
-            offset: const Offset(0, 4),
+            blurRadius: isActive ? 8 : 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -65,30 +65,30 @@ class PlayerInfoCard extends StatelessWidget {
               // Color indicator circle
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                width: 16,
-                height: 16,
+                width: 10,
+                height: 10,
                 decoration: BoxDecoration(
                   color: _playerColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: Colors.white, width: 1),
                   boxShadow: isActive
                       ? [
                           BoxShadow(
                             color: _playerColor.withValues(alpha: 0.5),
-                            blurRadius: 6,
+                            blurRadius: 4,
                             spreadRadius: 1,
                           ),
                         ]
                       : null,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
               // Player name
               Expanded(
                 child: Text(
                   player.name,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 12,
                     fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                     color: isActive ? _playerColor : Colors.grey[800],
                   ),
@@ -99,23 +99,23 @@ class PlayerInfoCard extends StatelessWidget {
               if (isActive)
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
                     color: _playerColor,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
                     'Turn',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 8,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
           // Stats row
           Row(
             children: [
@@ -128,7 +128,7 @@ class PlayerInfoCard extends StatelessWidget {
                   value: chipsRemaining.toString(),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 4),
               // Captured pieces
               Expanded(
                 child: _StatItem(
@@ -140,13 +140,13 @@ class PlayerInfoCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           // Score display
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -154,6 +154,7 @@ class PlayerInfoCard extends StatelessWidget {
                 Text(
                   'Score',
                   style: TextStyle(
+                    fontSize: 10,
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w500,
                   ),
@@ -163,7 +164,7 @@ class PlayerInfoCard extends StatelessWidget {
                   style: TextStyle(
                     color: _playerColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 14,
                   ),
                 ),
               ],
@@ -195,23 +196,23 @@ class _StatItem extends StatelessWidget {
         Icon(
           icon,
           color: iconColor,
-          size: 20,
+          size: 12,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 2),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 8,
                 color: Colors.grey[600],
               ),
             ),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
             ),

@@ -11,28 +11,50 @@ class ChipWidget extends StatelessWidget {
     // Determine the size of the chip dynamically based on screen size
     double chipSize = 60.0; // Fixed size for simplicity, you can adjust this
     
+    // Visual indicators for Dama (promoted) chips
+    final bool isDama = chip.isDama;
+    final Color borderColor = isDama ? Colors.amber : Colors.black;
+    final double borderWidth = isDama ? 3.0 : 2.0;
+    
     return Container(
       width: chipSize,
       height: chipSize,
       decoration: BoxDecoration(
         color: chip.owner == 1 ? Colors.blue : Colors.red,
         shape: BoxShape.circle, // Make the chip circular
-        border: Border.all(color: Colors.black, width: 2),
+        border: Border.all(color: borderColor, width: borderWidth),
       ),
       alignment: Alignment.center,
-      child: FittedBox(
-        fit: BoxFit.scaleDown, // Ensures text is scaled to fit the available space
-        child: RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14, // Base font size
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // The polynomial expression
+          FittedBox(
+            fit: BoxFit.scaleDown, // Ensures text is scaled to fit the available space
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, // Base font size
+                ),
+                children: _formatPolynomial(chip.terms),
+              ),
             ),
-            children: _formatPolynomial(chip.terms),
           ),
-        ),
+          // Crown/Star icon for Dama chips (positioned at top-right)
+          if (isDama)
+            Positioned(
+              top: 2,
+              right: 2,
+              child: Icon(
+                Icons.star,
+                color: Colors.amber,
+                size: 14,
+              ),
+            ),
+        ],
       ),
     );
   }

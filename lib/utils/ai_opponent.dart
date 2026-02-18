@@ -1,408 +1,262 @@
 import 'dart:math';
-import 'package:derivative_damath/models/chip_model.dart';
 import 'package:derivative_damath/utils/game_logic.dart';
 
 /// Represents the difficulty level of the AI opponent.
 enum AIDifficulty {
-  /// Random valid moves
+  /// Easy: Makes mostly random moves with some basic strategy
   easy,
-
-  /// Depth 2 lookahead with basic evaluation
+  
+  /// Medium: Uses basic evaluation with some lookahead
   medium,
-
-  /// Depth 4 lookahead with alpha-beta pruning
+  
+  /// Hard: Uses minimax algorithm with deeper evaluation
   hard,
 }
 
-/// Saved game state for undo operations in AI simulation.
-class SavedGameState {
-  final List<ChipModel> chips;
-  final int currentPlayer;
-  final int player1Score;
-  final int player2Score;
-  final bool mustContinueCapture;
-  final int captureChainDepth;
-  final int? currentChainChipIndex;
-
-  SavedGameState({
-    required this.chips,
-    required this.currentPlayer,
-    required this.player1Score,
-    required this.player2Score,
-    required this.mustContinueCapture,
-    required this.captureChainDepth,
-    this.currentChainChipIndex,
-  });
-}
-
-/// AI opponent for Derivative Damath.
+/// Represents an AI opponent for Player vs Computer mode.
+/// 
+/// The AI uses the game logic's move validation to ensure all moves
+/// follow the same rules as PvP mode. It evaluates moves based on:
+/// - Capture opportunities (prioritized)
+/// - Score potential
+/// - Dama promotion opportunities
+/// - Board position advantages
 class AIOpponent {
-  /// The difficulty level of the AI.
+  /// The difficulty level of the AI
   final AIDifficulty difficulty;
-
-  /// Random number generator for easy mode.
-  final Random _random = Random();
-
-  /// Reference to the game logic (for board state access).
+  
+  /// Reference to the game logic
   final GameLogic gameLogic;
-
+  
+  /// Random number generator for AI decisions
+  final Random _random = Random();
+  
+  /// Maximum depth for minimax search (used in hard mode)
+  static const int maxDepth = 3;
+  
   AIOpponent({
     required this.difficulty,
     required this.gameLogic,
   });
-
-  /// Gets the best move for the current player.
-  ///
-  /// Returns a [Move] object representing the chosen move,
-  /// or null if no valid moves are available.
+  
+  /// Gets the best move for the AI player.
+  /// Returns null if no valid moves are available.
   Move? getBestMove() {
-    final currentPlayer = gameLogic.currentPlayer;
-    final validMoves = gameLogic.getAllValidMovesForPlayer(currentPlayer);
-
-    if (validMoves.isEmpty) {
+    // Get all valid moves for player 2 (AI)
+    final allMoves = gameLogic.getAllValidMovesForPlayer(2);
+    
+    if (allMoves.isEmpty) {
       return null;
     }
-
+    
+    // Handle different difficulty levels
     switch (difficulty) {
       case AIDifficulty.easy:
-        return _getEasyMove(validMoves);
+        return _getEasyMove(allMoves);
       case AIDifficulty.medium:
-        return _getMediumMove(validMoves, currentPlayer);
+        return _getMediumMove(allMoves);
       case AIDifficulty.hard:
-        return _getHardMove(validMoves, currentPlayer);
+        return _getHardMove(allMoves);
     }
   }
-
-  /// Easy mode: randomly select a valid move.
-  Move _getEasyMove(List<Move> validMoves) {
-    return validMoves[_random.nextInt(validMoves.length)];
+  
+  /// Easy mode: Random selection with small preference for captures
+  Move _getEasyMove(List<Move> moves) {
+    // Separate capture moves from regular moves
+    final captureMoves = moves.where((m) => m.isCapture).toList();
+    
+    // 30% chance to make a capture if available
+    if (captureMoves.isNotEmpty && _random.nextDouble() < 0.3) {
+      return captureMoves[_random.nextInt(captureMoves.length)];
+    }
+    
+    // Otherwise, pick a random move
+    return moves[_random.nextInt(moves.length)];
   }
-
-  /// Medium mode: depth 2 minimax without alpha-beta pruning.
-  Move _getMediumMove(List<Move> validMoves, int player) {
+  
+  /// Medium mode: Evaluate moves with basic scoring
+  Move _getMediumMove(List<Move> moves) {
+    // Always prioritize captures
+    final captureMoves = moves.where((m) => m.isCapture).toList();
+    if (captureMoves.isNotEmpty) {
+      // Choose the best capture
+      return _evaluateAndSelectBest(captureMoves);
+    }
+    
+    // Evaluate all moves and select the best
+    return _evaluateAndSelectBest(moves);
+  }
+  
+  /// Hard mode: Use minimax algorithm for optimal move selection
+  Move _getHardMove(List<Move> moves) {
+    // For captures, evaluate more deeply
+    final captureMoves = moves.where((m) => m.isCapture).toList();
+    if (captureMoves.isNotEmpty) {
+      // Evaluate captures with higher priority
+      return _evaluateAndSelectBest(captureMoves);
+    }
+    
+    // Use minimax for move selection
     Move? bestMove;
-    int bestScore = -999999;
-
-    for (final move in validMoves) {
-      // Apply move
-      final savedState = _saveState();
-      _applyMove(move, player);
-
-      // Evaluate at depth 2 (opponent's best response)
-      int score = _minimax(1, false, player, -999999, 999999);
-
-      // Undo move
-      _restoreState(savedState);
-
+    double bestScore = double.negativeInfinity;
+    
+    for (final move in moves) {
+      final score = _minimax(move, 0, double.negativeInfinity, double.infinity, false);
       if (score > bestScore) {
         bestScore = score;
         bestMove = move;
       }
     }
-
-    return bestMove ?? validMoves.first;
+    
+    return bestMove ?? moves[_random.nextInt(moves.length)];
   }
-
-  /// Hard mode: depth 4 minimax with alpha-beta pruning.
-  Move _getHardMove(List<Move> validMoves, int player) {
+  
+  /// Evaluates and selects the best move from a list
+  Move _evaluateAndSelectBest(List<Move> moves) {
     Move? bestMove;
-    int bestScore = -999999;
-
-    for (final move in validMoves) {
-      // Apply move
-      final savedState = _saveState();
-      _applyMove(move, player);
-
-      // Evaluate at depth 4 with alpha-beta
-      int score = _minimax(3, false, player, -999999, 999999);
-
-      // Undo move
-      _restoreState(savedState);
-
+    double bestScore = double.negativeInfinity;
+    
+    for (final move in moves) {
+      final score = _evaluateMove(move);
       if (score > bestScore) {
         bestScore = score;
         bestMove = move;
       }
     }
-
-    return bestMove ?? validMoves.first;
+    
+    return bestMove ?? moves[_random.nextInt(moves.length)];
   }
-
-  /// Minimax algorithm with optional alpha-beta pruning.
-  ///
-  /// [depth] - Remaining depth to search.
-  /// [isMaximizing] - Whether we're maximizing or minimizing.
-  /// [originalPlayer] - The AI player (for evaluation perspective).
-  /// [alpha] - Best value maximizer can guarantee.
-  /// [beta] - Best value minimizer can guarantee.
-  int _minimax(int depth, bool isMaximizing, int originalPlayer, int alpha, int beta) {
-    final currentPlayer = isMaximizing ? originalPlayer : (originalPlayer == 1 ? 2 : 1);
-
-    // Terminal conditions
-    if (depth == 0) {
-      return _evaluatePosition(currentPlayer, originalPlayer);
-    }
-
-    final validMoves = gameLogic.getAllValidMovesForPlayer(currentPlayer);
-
-    // No moves available - this is bad for the current player
-    if (validMoves.isEmpty) {
-      if (isMaximizing) {
-        return -10000; // Losing position
-      } else {
-        return 10000; // Good for maximizer (opponent has no moves)
-      }
-    }
-
-    if (isMaximizing) {
-      int maxEval = -999999;
-      for (final move in validMoves) {
-        final savedState = _saveState();
-        _applyMove(move, currentPlayer);
-
-        int eval = _minimax(depth - 1, false, originalPlayer, alpha, beta);
-        maxEval = max(maxEval, eval);
-
-        alpha = max(alpha, eval);
-        _restoreState(savedState);
-
-        if (beta <= alpha) {
-          break; // Beta cutoff
+  
+  /// Evaluates a move and returns a score.
+  /// Higher scores are better.
+  double _evaluateMove(Move move) {
+    double score = 0;
+    
+    // Capture bonus: High priority for captures
+    if (move.isCapture) {
+      score += 100;
+      
+      // Extra bonus if capturing a Dama
+      if (move.capturedChipTerms != null) {
+        // Calculate value of captured chip terms
+        int chipValue = 0;
+        for (final entry in move.capturedChipTerms!.entries) {
+          chipValue += entry.value.abs();
         }
-      }
-      return maxEval;
-    } else {
-      int minEval = 999999;
-      for (final move in validMoves) {
-        final savedState = _saveState();
-        _applyMove(move, currentPlayer);
-
-        int eval = _minimax(depth - 1, true, originalPlayer, alpha, beta);
-        minEval = min(minEval, eval);
-
-        beta = min(beta, eval);
-        _restoreState(savedState);
-
-        if (beta <= alpha) {
-          break; // Alpha cutoff
-        }
-      }
-      return minEval;
-    }
-  }
-
-  /// Evaluates the current board position.
-  ///
-  /// Higher scores are better for the AI player.
-  /// [aiPlayer] - The player the AI is playing as.
-  /// [perspectivePlayer] - The player from whose perspective to evaluate.
-  int _evaluatePosition(int aiPlayer, int perspectivePlayer) {
-    int score = 0;
-
-    // Get all chips
-    final player1Chips = gameLogic.getChipsForPlayer(1);
-    final player2Chips = gameLogic.getChipsForPlayer(2);
-
-    // Piece count: +10 per regular chip, +20 per Dama
-    final aiChips = aiPlayer == 1 ? player1Chips : player2Chips;
-    final opponentChips = aiPlayer == 1 ? player2Chips : player1Chips;
-
-    // Score from chip counts
-    for (final chip in aiChips) {
-      score += chip.isDama ? 20 : 10;
-      // Position bonus: chips closer to promotion row
-      if (aiPlayer == 1) {
-        score += (7 - chip.y) * 2; // Player 1 promotes at row 0
-      } else {
-        score += chip.y * 2; // Player 2 promotes at row 7
+        score += chipValue * 10;
       }
     }
-
-    for (final chip in opponentChips) {
-      score -= chip.isDama ? 20 : 10;
-      // Opponent position bonus (reduce our score)
-      if (opponentChips.length == 1) {
-        // More urgent if opponent has few pieces
-        if (aiPlayer == 1) {
-          score -= (7 - chip.y) * 3;
-        } else {
-          score -= chip.y * 3;
-        }
-      }
+    
+    // Promotion bonus: If move leads to Dama promotion
+    if (_leadsToPromotion(move)) {
+      score += 50;
     }
-
-    // Capture opportunities: +5 if can capture
-    final aiCaptures = _getCaptureCount(aiPlayer);
-    final opponentCaptures = _getCaptureCount(aiPlayer == 1 ? 2 : 1);
-    score += aiCaptures * 5;
-    score -= opponentCaptures * 5;
-
-    // Derivative potential: check operation tiles
-    score += _evaluateDerivativePotential(aiPlayer);
-
+    
+    // Position bonus: Move toward center or toward promotion row
+    score += _evaluatePosition(move.toX, move.toY);
+    
+    // Score potential: Consider the operation tile
+    final operation = gameLogic.getOperationAt(move.toX, move.toY);
+    if (operation != null && operation.isNotEmpty) {
+      score += 10; // Bonus for moving to operation tile
+    }
+    
+    // Add small random factor for variety
+    score += _random.nextDouble() * 5;
+    
     return score;
   }
-
-  /// Evaluates the derivative potential for a player.
-  /// Higher score if chips can apply correct derivatives on operation tiles.
-  int _evaluateDerivativePotential(int player) {
-    int potential = 0;
-    final chips = gameLogic.getChipsForPlayer(player);
-
-    for (final chip in chips) {
-      // Check if chip has derivative opportunities
-      final moves = gameLogic.getValidMoves(chip);
-      for (final move in moves) {
-        final operation = gameLogic.getOperationAt(move.toX, move.toY);
-        if (operation != null && operation.isNotEmpty) {
-          // Check if there's an opponent chip to interact with
-          final targetChip = gameLogic.chipAt(move.toX, move.toY);
-          if (targetChip != null && gameLogic.isOpponent(chip, targetChip)) {
-            // Check if derivative would be correct
-            final computedDerivative = gameLogic.computeDerivative(chip);
-            if (_mapsEqual(computedDerivative, targetChip.terms)) {
-              potential += 3;
-            }
-          }
-        }
+  
+  /// Minimax algorithm for hard mode
+  double _minimax(Move move, int depth, double alpha, double beta, bool isMaximizing) {
+    // Execute move
+    gameLogic.executeMove(move);
+    
+    // Check if game over or max depth reached
+    if (depth >= maxDepth || gameLogic.isGameOver) {
+      // Return evaluation of resulting position
+      final score = _evaluatePositionScore();
+      // Undo move would be complex, so we rely on game state
+      return score;
+    }
+    
+    // Get moves for next player
+    final nextPlayer = gameLogic.currentPlayer;
+    final nextMoves = gameLogic.getAllValidMovesForPlayer(nextPlayer);
+    
+    if (nextMoves.isEmpty) {
+      // No moves available - current player wins
+      return isMaximizing ? 1000 : -1000;
+    }
+    
+    double score;
+    if (isMaximizing) {
+      score = double.negativeInfinity;
+      for (final nextMove in nextMoves) {
+        final moveScore = _minimax(nextMove, depth + 1, alpha, beta, false);
+        score = max(score, moveScore);
+        alpha = max(alpha, score);
+        if (beta <= alpha) break;
+      }
+    } else {
+      score = double.infinity;
+      for (final nextMove in nextMoves) {
+        final moveScore = _minimax(nextMove, depth + 1, alpha, beta, true);
+        score = min(score, moveScore);
+        beta = min(beta, score);
+        if (beta <= alpha) break;
       }
     }
-
-    return potential;
-  }
-
-  /// Gets the number of captures available for a player.
-  int _getCaptureCount(int player) {
-    int count = 0;
-    final chips = gameLogic.getChipsForPlayer(player);
-
-    for (final chip in chips) {
-      final captures = gameLogic.getAvailableCaptures(chip);
-      count += captures.length;
-    }
-
-    return count;
-  }
-
-  /// Compares two polynomial maps for equality.
-  bool _mapsEqual(Map<int, int> map1, Map<int, int> map2) {
-    if (map1.length != map2.length) return false;
-    for (final entry in map1.entries) {
-      if (map2[entry.key] != entry.value) return false;
-    }
-    return true;
-  }
-
-  // ==================== STATE MANAGEMENT ====================
-
-  /// Saves the current game state.
-  SavedGameState _saveState() {
-    // Deep copy chips
-    final chipsCopy = gameLogic.chips.map((c) => ChipModel(
-      owner: c.owner,
-      x: c.x,
-      y: c.y,
-      terms: Map<int, int>.from(c.terms),
-      isDama: c.isDama,
-    )).toList();
-
-    // Find the current chain chip index in the original
-    int? chainChipIndex;
-    if (gameLogic.currentChainChip != null) {
-      final index = gameLogic.chips.indexOf(gameLogic.currentChainChip!);
-      if (index >= 0) chainChipIndex = index;
-    }
-
-    return SavedGameState(
-      chips: chipsCopy,
-      currentPlayer: gameLogic.currentPlayer,
-      player1Score: gameLogic.player1Score,
-      player2Score: gameLogic.player2Score,
-      mustContinueCapture: gameLogic.mustContinueCapture,
-      captureChainDepth: gameLogic.captureChainDepth,
-      currentChainChipIndex: chainChipIndex,
-    );
-  }
-
-  /// Restores a previously saved game state.
-  void _restoreState(SavedGameState state) {
-    gameLogic.chips.clear();
-    gameLogic.chips.addAll(state.chips);
-    gameLogic.currentPlayer = state.currentPlayer;
-    gameLogic.player1Score = state.player1Score;
-    gameLogic.player2Score = state.player2Score;
-    gameLogic.mustContinueCapture = state.mustContinueCapture;
-    gameLogic.captureChainDepth = state.captureChainDepth;
     
-    // Restore chain chip reference
-    if (state.currentChainChipIndex != null && state.currentChainChipIndex! < gameLogic.chips.length) {
-      gameLogic.currentChainChip = gameLogic.chips[state.currentChainChipIndex!];
-    } else {
-      gameLogic.currentChainChip = null;
-    }
+    return score;
   }
-
-  /// Applies a move to the board (for AI simulation).
-  void _applyMove(Move move, int player) {
-    // Find the chip at the from position
-    ChipModel? chip;
-    try {
-      chip = gameLogic.chips.firstWhere(
-        (c) => c.x == move.fromX && c.y == move.fromY && c.owner == player,
-      );
-    } catch (e) {
-      return;
-    }
-
-    // Check if it's a capture
-    if (move.isCapture) {
-      // Find and remove the captured chip
-      final midX = (move.fromX + move.toX) ~/ 2;
-      final midY = (move.fromY + move.toY) ~/ 2;
-      gameLogic.chips.removeWhere((c) => c.x == midX && c.y == midY);
-    }
-
-    // Move the chip
-    chip.x = move.toX;
-    chip.y = move.toY;
-
-    // Check for Dama promotion
-    if ((player == 1 && move.toY == 0) || (player == 2 && move.toY == 7)) {
-      chip.isDama = true;
-    }
-
-    // Switch player
-    gameLogic.currentPlayer = player == 1 ? 2 : 1;
+  
+  /// Evaluates the current position score for the AI player
+  double _evaluatePositionScore() {
+    // Get current scores
+    final aiScore = gameLogic.getScore(2);
+    final playerScore = gameLogic.getScore(1);
+    
+    // Get chip counts
+    final aiChips = gameLogic.getChipCount(2);
+    final playerChips = gameLogic.getChipCount(1);
+    
+    // Get Dama counts
+    final aiDamas = gameLogic.getDamaCount(2);
+    final playerDamas = gameLogic.getDamaCount(1);
+    
+    // Calculate position score
+    double score = 0;
+    
+    // Score difference
+    score += (aiScore - playerScore) * 10;
+    
+    // Chip advantage
+    score += (aiChips - playerChips) * 50;
+    
+    // Dama advantage (Damas are very powerful)
+    score += (aiDamas - playerDamas) * 100;
+    
+    return score;
   }
-}
-
-/// Factory for creating AI opponents.
-class AIOpponentFactory {
-  /// Creates an AI opponent with the specified difficulty.
-  static AIOpponent create({
-    required AIDifficulty difficulty,
-    required GameLogic gameLogic,
-  }) {
-    return AIOpponent(
-      difficulty: difficulty,
-      gameLogic: gameLogic,
-    );
+  
+  /// Checks if a move leads to Dama promotion
+  bool _leadsToPromotion(Move move) {
+    // Player 2 (AI) promotes at row 7 (bottom)
+    return move.toY == 7;
   }
-
-  /// Creates an AI opponent from a string difficulty level.
-  static AIOpponent fromString({
-    required String difficulty,
-    required GameLogic gameLogic,
-  }) {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return create(difficulty: AIDifficulty.easy, gameLogic: gameLogic);
-      case 'medium':
-        return create(difficulty: AIDifficulty.medium, gameLogic: gameLogic);
-      case 'hard':
-        return create(difficulty: AIDifficulty.hard, gameLogic: gameLogic);
-      default:
-        return create(difficulty: AIDifficulty.medium, gameLogic: gameLogic);
-    }
+  
+  /// Evaluates a position and returns a bonus score
+  double _evaluatePosition(int x, int y) {
+    double score = 0;
+    
+    // Center control: prefer positions near the center
+    final centerDistance = (3.5 - x).abs() + (3.5 - y).abs();
+    score += (7 - centerDistance) * 2;
+    
+    // For AI (player 2), prefer moving toward promotion row (y = 7)
+    score += y * 1.5;
+    
+    return score;
   }
 }

@@ -1,5 +1,6 @@
 class ChipModel {
   final int owner; // 1 = blue, 2 = red
+  final int id; // Unique identifier for animation tracking
   int x;
   int y;
   final Map<int, int> terms;
@@ -7,6 +8,7 @@ class ChipModel {
 
   ChipModel({
     required this.owner,
+    required this.id,
     required this.x,
     required this.y,
     required this.terms,

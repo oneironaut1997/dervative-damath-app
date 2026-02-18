@@ -2,7 +2,7 @@ import '../models/chip_model.dart';
 
 List<ChipModel> getInitialChips() {
   final List<Map<String, Object>> data = [
-    // 🔴 Player 2 (top)
+    // 🔴 Player 2 (bottom)
     {'owner': 2, 'x': 0, 'y': 0, 'poly': {4: 78}},
     {'owner': 2, 'x': 2, 'y': 0, 'poly': {3: 66}},
     {'owner': 2, 'x': 4, 'y': 0, 'poly': {2: -45}},
@@ -16,7 +16,7 @@ List<ChipModel> getInitialChips() {
     {'owner': 2, 'x': 4, 'y': 2, 'poly': {4: 1}},
     {'owner': 2, 'x': 6, 'y': 2, 'poly': {3: -3}},
 
-    // 🔵 Player 1 (bottom)
+    // 🔵 Player 1 (top)
     {'owner': 1, 'x': 1, 'y': 7, 'poly': {1: -55}},
     {'owner': 1, 'x': 3, 'y': 7, 'poly': {2: -45}},
     {'owner': 1, 'x': 5, 'y': 7, 'poly': {3: 66}},
