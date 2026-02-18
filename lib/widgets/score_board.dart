@@ -30,15 +30,15 @@ class ScoreBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
-            blurRadius: 8,
-            offset: Offset(0, 4),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -55,7 +55,7 @@ class ScoreBoard extends StatelessWidget {
           // Divider
           Container(
             width: 1,
-            height: 50,
+            height: 35,
             color: Colors.grey[300],
           ),
           // VS Indicator
@@ -63,7 +63,7 @@ class ScoreBoard extends StatelessWidget {
           // Divider
           Container(
             width: 1,
-            height: 50,
+            height: 35,
             color: Colors.grey[300],
           ),
           // Player 2 Score
@@ -97,10 +97,10 @@ class _PlayerScore extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: isActive ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: isActive
             ? Border.all(color: color, width: 2)
             : Border.all(color: Colors.transparent, width: 2),
@@ -113,8 +113,8 @@ class _PlayerScore extends StatelessWidget {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 decoration: BoxDecoration(
                   color: color,
                   shape: BoxShape.circle,
@@ -129,18 +129,18 @@ class _PlayerScore extends StatelessWidget {
                       : null,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 name,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                   color: isActive ? color : Colors.grey[700],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, animation) {
@@ -156,7 +156,7 @@ class _PlayerScore extends StatelessWidget {
               score.toString(),
               key: ValueKey<int>(score),
               style: TextStyle(
-                fontSize: 28,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -166,7 +166,7 @@ class _PlayerScore extends StatelessWidget {
             Text(
               'Turn',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 color: color,
                 fontWeight: FontWeight.w500,
               ),
@@ -183,11 +183,11 @@ class _VsIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       child: const Text(
         'VS',
         style: TextStyle(
-          fontSize: 18,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
           color: Colors.grey,
         ),

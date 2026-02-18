@@ -319,34 +319,33 @@ class _GameBoardState extends State<GameBoard> {
                   player2Name: 'Player 2',
                 ),
                 // Show "Must Continue Capturing" indicator
-                if (mustContinueCapturing)
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      '⚠️ Must Continue Capturing!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+                // if (mustContinueCapturing)
+                //   Container(
+                //     margin: const EdgeInsets.only(top: 8),
+                //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                //     decoration: BoxDecoration(
+                //       color: Colors.orange,
+                //       borderRadius: BorderRadius.circular(20),
+                //     ),
+                //     child: const Text(
+                //       '⚠️ Must Continue Capturing!',
+                //       style: TextStyle(
+                //         color: Colors.white,
+                //         fontWeight: FontWeight.bold,
+                //         fontSize: 12,
+                //       ),
+                //     ),
+                //   ),
                 // Reset Game Button
                 Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: ElevatedButton.icon(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: IconButton(
                     onPressed: () => _showResetConfirmationDialog(),
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Reset Game'),
-                    style: ElevatedButton.styleFrom(
+                    icon: const Icon(Icons.refresh),
+                    style: IconButton.styleFrom(
                       backgroundColor: Colors.grey[700],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.all(8),
                     ),
                   ),
                 ),

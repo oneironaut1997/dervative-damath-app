@@ -11,8 +11,8 @@ void main() {
       
       // Setup: Create a capture scenario
       gameLogic.chips = [
-        ChipModel(owner: 1, x: 2, y: 3, terms: {1: 1}),
-        ChipModel(owner: 2, x: 3, y: 2, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 2, y: 3, terms: {1: 1}),
+        ChipModel(id: 1, owner: 2, x: 3, y: 2, terms: {1: 1}),
       ];
       
       final player1Chip = gameLogic.chips.firstWhere((c) => c.owner == 1);
@@ -26,8 +26,12 @@ void main() {
       var gameLogic = GameLogic();
       gameLogic.initializeChips();
       
-      // Get a chip and its valid moves
-      final chip = gameLogic.chips.firstWhere((c) => c.owner == 1);
+      // Get a chip that has valid moves (chips at y=5 have forward movement available)
+      final chips = gameLogic.getChipsForPlayer(1);
+      final chip = chips.firstWhere(
+        (c) => c.y == 5, // Chips at y=5 can move forward to y=4
+        orElse: () => chips.first,
+      );
       final validMoves = gameLogic.getValidMoves(chip);
       
       expect(validMoves.isNotEmpty, isTrue);
@@ -79,9 +83,9 @@ void main() {
       var gameLogic = GameLogic();
       
       gameLogic.chips = [
-        ChipModel(owner: 1, x: 2, y: 3, terms: {1: 1}),
-        ChipModel(owner: 2, x: 3, y: 2, terms: {1: 1}),
-        ChipModel(owner: 2, x: 4, y: 1, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 2, y: 3, terms: {1: 1}),
+        ChipModel(id: 1, owner: 2, x: 3, y: 2, terms: {1: 1}),
+        ChipModel(id: 2, owner: 2, x: 4, y: 1, terms: {1: 1}),
       ];
       
       gameLogic.currentPlayer = 1;
@@ -115,7 +119,7 @@ void main() {
       var gameLogic = GameLogic();
       
       gameLogic.chips = [
-        ChipModel(owner: 1, x: 3, y: 1, terms: {1: 1}, isDama: false),
+        ChipModel(id: 0, owner: 1, x: 3, y: 1, terms: {1: 1}, isDama: false),
       ];
       gameLogic.currentPlayer = 1;
       
@@ -134,7 +138,7 @@ void main() {
     test('Dama can move backward after promotion', () {
       var gameLogic = GameLogic();
       
-      final chip = ChipModel(owner: 1, x: 3, y: 3, terms: {1: 1}, isDama: true);
+      final chip = ChipModel(id: 0, owner: 1, x: 3, y: 3, terms: {1: 1}, isDama: true);
       gameLogic.chips = [chip];
       gameLogic.currentPlayer = 1;
       
@@ -148,7 +152,7 @@ void main() {
     test('Dama can slide multiple squares', () {
       var gameLogic = GameLogic();
       
-      final chip = ChipModel(owner: 1, x: 3, y: 3, terms: {1: 1}, isDama: true);
+      final chip = ChipModel(id: 0, owner: 1, x: 3, y: 3, terms: {1: 1}, isDama: true);
       gameLogic.chips = [chip];
       
       final moves = gameLogic.getValidMoves(chip);
@@ -166,7 +170,7 @@ void main() {
       var gameLogic = GameLogic();
       
       gameLogic.chips = [
-        ChipModel(owner: 1, x: 3, y: 3, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 3, y: 3, terms: {1: 1}),
       ];
       gameLogic.currentPlayer = 1;
       
@@ -180,8 +184,8 @@ void main() {
       var gameLogic = GameLogic();
       
       gameLogic.chips = [
-        ChipModel(owner: 1, x: 3, y: 3, terms: {1: 1}),
-        ChipModel(owner: 2, x: 4, y: 4, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 3, y: 3, terms: {1: 1}),
+        ChipModel(id: 1, owner: 2, x: 4, y: 4, terms: {1: 1}),
       ];
       gameLogic.currentPlayer = 1;
       
@@ -255,6 +259,7 @@ void main() {
   group('Game Logic - Chip Model', () {
     test('Chip label is generated correctly', () {
       final chip = ChipModel(
+        id: 0,
         owner: 1,
         x: 0,
         y: 0,
@@ -266,6 +271,7 @@ void main() {
 
     test('Chip can be created with isDama flag', () {
       final chip = ChipModel(
+        id: 0,
         owner: 1,
         x: 0,
         y: 0,

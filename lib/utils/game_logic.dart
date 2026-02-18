@@ -208,10 +208,10 @@ class GameLogic {
     final dx = x - selectedChip!.x;
     final dy = y - selectedChip!.y;
 
-    // Dama can move in both directions
+    // Dama can move in both diagonal directions (forward and backward)
     if (selectedChip!.isDama) {
-      // Multi-square slide for Dama
-      if (dx.abs() == dy.abs() || dx == 0 || dy == 0) {
+      // Multi-square slide for Dama - diagonal only
+      if (dx.abs() == dy.abs()) {
         // Check if path is clear for multi-square move
         return _isPathClear(selectedChip!.x, selectedChip!.y, x, y);
       }
@@ -323,6 +323,9 @@ class GameLogic {
     // Move the chip
     selectedChip!.x = x;
     selectedChip!.y = y;
+
+    // Check for Dama promotion after move
+    _checkAndPromoteDama(x, y);
 
     // Record position for draw detection
     _recordPosition();
@@ -542,10 +545,9 @@ class GameLogic {
     final directions = <List<int>>[];
 
     if (chip.isDama) {
-      // Dama can move in all 8 directions
+      // Dama can move in all 4 diagonal directions (forward and backward)
       directions.addAll([
-        [-1, -1], [1, -1], [-1, 1], [1, 1], // Diagonals
-        [0, -1], [0, 1], [-1, 0], [1, 0],   // Orthogonals
+        [-1, -1], [1, -1], [-1, 1], [1, 1], // Diagonals only
       ]);
     } else {
       // Regular chip: diagonal only (forward only, but only diagonal directions)

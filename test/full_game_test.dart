@@ -33,7 +33,12 @@ void main() {
       
       game.currentPlayer = 1;
       
-      final chip = game.chips.firstWhere((c) => c.owner == 1);
+      // Get a chip that has valid moves (chips at y=5 have forward movement available)
+      final chips = game.getChipsForPlayer(1);
+      final chip = chips.firstWhere(
+        (c) => c.y == 5, // Chips at y=5 can move forward to y=4
+        orElse: () => chips.first,
+      );
       final validMoves = game.getValidMoves(chip);
       
       expect(validMoves.isNotEmpty, isTrue);
@@ -47,9 +52,9 @@ void main() {
       
       // Create a scenario where capture is possible
       game.chips = [
-        ChipModel(owner: 1, x: 2, y: 4, terms: {1: 1}),
-        ChipModel(owner: 2, x: 3, y: 3, terms: {1: 1}),
-        ChipModel(owner: 2, x: 1, y: 3, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 2, y: 4, terms: {1: 1}),
+        ChipModel(id: 1, owner: 2, x: 3, y: 3, terms: {1: 1}),
+        ChipModel(id: 2, owner: 2, x: 1, y: 3, terms: {1: 1}),
       ];
       game.currentPlayer = 1;
       
@@ -71,8 +76,8 @@ void main() {
       var game = GameLogic();
       
       game.chips = [
-        ChipModel(owner: 1, x: 3, y: 5, terms: {2: 3}),
-        ChipModel(owner: 2, x: 3, y: 3, terms: {1: 6}),
+        ChipModel(id: 0, owner: 1, x: 3, y: 5, terms: {2: 3}),
+        ChipModel(id: 1, owner: 2, x: 3, y: 3, terms: {1: 6}),
       ];
       game.currentPlayer = 1;
       
@@ -109,7 +114,7 @@ void main() {
       var game = GameLogic();
       
       game.chips = [
-        ChipModel(owner: 1, x: 3, y: 1, terms: {1: 1}, isDama: false),
+        ChipModel(id: 0, owner: 1, x: 3, y: 1, terms: {1: 1}, isDama: false),
       ];
       game.currentPlayer = 1;
       
@@ -129,7 +134,7 @@ void main() {
       var game = GameLogic();
       
       game.chips = [
-        ChipModel(owner: 1, x: 3, y: 3, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 3, y: 3, terms: {1: 1}),
       ];
       game.currentPlayer = 1;
       
@@ -153,7 +158,22 @@ void main() {
           break;
         }
         
-        final chip = currentPlayerChips.first;
+        // Find a chip that has valid moves (prefer chips at y=5 for Player 1, y=2 for Player 2)
+        final availableChips = currentPlayerChips.where(
+          (c) => game.getValidMoves(c).isNotEmpty,
+        ).toList();
+        
+        if (availableChips.isEmpty) {
+          game.evaluateGameState();
+          break;
+        }
+        
+        // Prefer chips that can move forward (y=5 for P1, y=2 for P2)
+        final preferredY = game.currentPlayer == 1 ? 5 : 2;
+        final chip = availableChips.firstWhere(
+          (c) => c.y == preferredY,
+          orElse: () => availableChips.first,
+        );
         final validMoves = game.getValidMoves(chip);
         
         if (validMoves.isEmpty) {
@@ -177,8 +197,8 @@ void main() {
       
       // Player 1 chip at (2,2) can capture Player 2 chip at (3,3) to land at (4,4)
       game.chips = [
-        ChipModel(owner: 1, x: 2, y: 2, terms: {1: 1}),
-        ChipModel(owner: 2, x: 3, y: 3, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 2, y: 2, terms: {1: 1}),
+        ChipModel(id: 1, owner: 2, x: 3, y: 3, terms: {1: 1}),
       ];
       game.currentPlayer = 1;
       
@@ -229,10 +249,10 @@ void main() {
       var game = GameLogic();
       
       game.chips = [
-        ChipModel(owner: 1, x: 0, y: 0, terms: {1: 1}),
-        ChipModel(owner: 2, x: 1, y: 1, terms: {1: 1}),
-        ChipModel(owner: 2, x: 0, y: 2, terms: {1: 1}),
-        ChipModel(owner: 2, x: 2, y: 0, terms: {1: 1}),
+        ChipModel(id: 0, owner: 1, x: 0, y: 0, terms: {1: 1}),
+        ChipModel(id: 1, owner: 2, x: 1, y: 1, terms: {1: 1}),
+        ChipModel(id: 2, owner: 2, x: 0, y: 2, terms: {1: 1}),
+        ChipModel(id: 3, owner: 2, x: 2, y: 0, terms: {1: 1}),
       ];
       game.currentPlayer = 1;
       
@@ -246,8 +266,8 @@ void main() {
       var game = GameLogic();
       
       game.chips = [
-        ChipModel(owner: 1, x: 3, y: 5, terms: {2: 3}),
-        ChipModel(owner: 2, x: 3, y: 3, terms: {1: 5}),
+        ChipModel(id: 0, owner: 1, x: 3, y: 5, terms: {2: 3}),
+        ChipModel(id: 1, owner: 2, x: 3, y: 3, terms: {1: 5}),
       ];
       game.currentPlayer = 1;
       

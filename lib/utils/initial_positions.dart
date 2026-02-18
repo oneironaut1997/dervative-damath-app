@@ -31,12 +31,13 @@ List<ChipModel> getInitialChips() {
     {'owner': 1, 'x': 7, 'y': 5, 'poly': {2: 10}},
   ];
 
-  return data
-      .map((e) => ChipModel(
-            owner: e['owner'] as int,
-            x: e['x'] as int,
-            y: e['y'] as int,
-            terms: e['poly'] as Map<int, int>, // keep as integers
+  return data.asMap().entries
+      .map((entry) => ChipModel(
+            id: entry.key,
+            owner: entry.value['owner'] as int,
+            x: entry.value['x'] as int,
+            y: entry.value['y'] as int,
+            terms: entry.value['poly'] as Map<int, int>,
           ))
       .toList();
 }
