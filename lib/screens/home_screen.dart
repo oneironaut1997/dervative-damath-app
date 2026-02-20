@@ -1,6 +1,7 @@
 // home_screen.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../utils/sound_service.dart';
 import 'game_screen.dart';
 import 'how_to_play_screen.dart';
 
@@ -34,6 +35,191 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Shows the game start modal with timer options
+void _showGameStartModal(BuildContext context, String mode) {
+  SoundService().playClick();
+  
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext dialogContext) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header icon
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D5BFF).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.timer_outlined,
+                  size: 36,
+                  color: Color(0xFF1D5BFF),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Title
+              const Text(
+                'Start Game',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0D2045),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Subtitle
+              Text(
+                mode == 'PvC' ? 'Play vs Computer' : 'Player vs Player',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF6B778C),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Question
+              const Text(
+                'Do you want to play with a timer?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF0D2045),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Timer info
+              const Text(
+                'Each player has 2 minutes per turn.\nTimeout deducts 10,000 points!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF6B778C),
+                ),
+              ),
+              const SizedBox(height: 28),
+              
+              // With Timer Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    SoundService().playClick();
+                    Navigator.of(dialogContext).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => GameScreen(mode: mode, useTimer: true),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1D5BFF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.timer, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'With Timer',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Without Timer Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    SoundService().playClick();
+                    Navigator.of(dialogContext).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => GameScreen(mode: mode, useTimer: false),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0D2045),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    side: const BorderSide(
+                      color: Color(0xFFD4E6FF),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.timer_off_outlined, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'Without Timer',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Cancel Button
+              TextButton(
+                onPressed: () {
+                  SoundService().playClick();
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6B778C),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _MainCard extends StatelessWidget {
@@ -83,14 +269,7 @@ class _MainCard extends StatelessWidget {
               iconColor: Colors.white,
             ),
             title: 'Play vs Computer',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const GameScreen(mode: 'PvC'),
-                ),
-              );
-            },
+            onTap: () => _showGameStartModal(context, 'PvC'),
           ),
           const SizedBox(height: 14),
           _MenuButton(
@@ -102,14 +281,7 @@ class _MainCard extends StatelessWidget {
               iconColor: Color(0xFF1D5BFF),
             ),
             title: 'Player vs Player',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const GameScreen(mode: 'PvP'),
-                ),
-              );
-            },
+            onTap: () => _showGameStartModal(context, 'PvP'),
           ),
           const SizedBox(height: 14),
           _MenuButton(
@@ -122,6 +294,7 @@ class _MainCard extends StatelessWidget {
             ),
             title: 'How to Play',
             onTap: () {
+              SoundService().playClick();
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -138,7 +311,10 @@ class _MainCard extends StatelessWidget {
           // Quit
           InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: () => Navigator.of(context).maybePop(),
+            onTap: () {
+              SoundService().playClick();
+              Navigator.of(context).maybePop();
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               child: Row(

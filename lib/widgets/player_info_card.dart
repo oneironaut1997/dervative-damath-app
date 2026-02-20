@@ -6,6 +6,7 @@ import '../models/player_model.dart';
 /// - Color indicator
 /// - Chips remaining count
 /// - Captured pieces count
+/// - Remaining time for turn (if active)
 class PlayerInfoCard extends StatelessWidget {
   /// The player model containing all player data
   final PlayerModel player;
@@ -19,13 +20,28 @@ class PlayerInfoCard extends StatelessWidget {
   /// Whether this player is currently active (it's their turn)
   final bool isActive;
 
+  /// Remaining time in seconds for the current turn (null if not active)
+  final int? remainingTime;
+
   const PlayerInfoCard({
     super.key,
     required this.player,
     required this.chipsRemaining,
     required this.capturedCount,
     this.isActive = false,
+    this.remainingTime,
   });
+
+  /// Format seconds to MM:SS
+  String get _formattedTime {
+    if (remainingTime == null) return '--:--';
+    final minutes = remainingTime! ~/ 60;
+    final seconds = remainingTime! % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  /// Check if time is low (30 seconds or less)
+  bool get _isLowTime => remainingTime != null && remainingTime! <= 30;
 
   Color get _playerColor {
     return player.color == PlayerColor.blue ? Colors.blue : Colors.red;
@@ -96,19 +112,19 @@ class PlayerInfoCard extends StatelessWidget {
                 ),
               ),
               // Active indicator
-              if (isActive)
+              if (isActive && remainingTime != null)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: _playerColor,
+                    color: _isLowTime ? Colors.orange : _playerColor,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'Turn',
-                    style: TextStyle(
+                  child: Text(
+                    _formattedTime,
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 8,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

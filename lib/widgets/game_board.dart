@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import '../models/chip_model.dart';
 import '../models/player_model.dart';
 import '../utils/operations_layout.dart';
 import '../utils/game_logic.dart';
 import '../utils/ai_opponent.dart';
+import '../utils/sound_service.dart';
 import 'score_board.dart';
 import 'player_info_card.dart';
 import 'draggable_piece.dart';
 
 class GameBoard extends StatefulWidget {
   final String mode; // "PvP" or "PvC"
+  final bool useTimer; // Whether to enable turn timer
   
-  const GameBoard({super.key, required this.mode});
+  const GameBoard({
+    super.key,
+    required this.mode,
+    this.useTimer = true,
+  });
 
   @override
   State<GameBoard> createState() => _GameBoardState();
@@ -29,7 +37,13 @@ class _GameBoardState extends State<GameBoard> {
   bool isGameOver = false;
   String? winnerMessage;
   bool mustContinueCapturing = false; // Track if player must continue chain capture
+  bool isCaptureAvailable = false; // Track if any capture is available (must capture rule)
   bool isAIThinking = false; // Track if AI is thinking
+
+  // Track previous counts for sound triggers
+  int _previousPlayer1Chips = 12;
+  int _previousPlayer2Chips = 12;
+  int _previousDamaCount = 0;
 
   // Player models for PlayerInfoCard
   late PlayerModel player1;
@@ -37,6 +51,11 @@ class _GameBoardState extends State<GameBoard> {
 
   // AI Opponent (initialized when mode is PvC)
   AIOpponent? aiOpponent;
+
+  // Turn timer variables
+  Timer? _turnTimer;
+  int _remainingSeconds = 120; // 2 minutes per turn
+  static const int turnTimeLimit = 120; // 2 minutes in seconds
 
   final operations = getOperationsBoard(); // 8x8 String grid
 
@@ -66,10 +85,116 @@ class _GameBoardState extends State<GameBoard> {
       color: PlayerColor.red,
       score: 0,
     );
+
+    // Start the turn timer only if useTimer is true
+    if (widget.useTimer) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startTimer();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopTimer();
+    super.dispose();
+  }
+
+  /// Start the turn timer
+  void _startTimer() {
+    _stopTimer();
+    _remainingSeconds = turnTimeLimit;
+    _turnTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _remainingSeconds--;
+      });
+      
+      if (_remainingSeconds <= 0) {
+        _onTurnTimeout();
+      }
+    });
+  }
+
+  /// Stop the turn timer
+  void _stopTimer() {
+    _turnTimer?.cancel();
+    _turnTimer = null;
+  }
+
+  /// Handle turn timeout - deduct points and switch turn
+  void _onTurnTimeout() {
+    _stopTimer();
+    
+    // Deduct 10k points from current player
+    // If score is already negative, subtracting more makes it more negative
+    if (currentPlayer == 1) {
+      player1Score -= 10000;
+      player1.score = player1Score;
+      // Also update gameLogic's internal score
+      gameLogic.player1Score = player1Score.toDouble();
+    } else {
+      player2Score -= 10000;
+      player2.score = player2Score;
+      // Also update gameLogic's internal score
+      gameLogic.player2Score = player2Score.toDouble();
+    }
+    
+    // Play timeout sound
+    SoundService().playTimeout();
+    
+    // Switch turn to opponent
+    _switchTurnWithTimer();
+  }
+
+  /// Switch turn to opponent and start their timer
+  void _switchTurnWithTimer() {
+    gameLogic.currentPlayer = gameLogic.currentPlayer == 1 ? 2 : 1;
+    _refreshState();
+    
+    // Start timer only if useTimer is enabled
+    if (widget.useTimer) {
+      _startTimer();
+    }
+    
+    // In PvC mode, if it's now AI's turn (player 2), trigger AI move
+    if (widget.mode == 'PvC' && gameLogic.currentPlayer == 2 && !isGameOver) {
+      _triggerAIMove();
+    }
+  }
+
+  /// Get formatted time string (MM:SS)
+  String get _timerDisplay {
+    final minutes = _remainingSeconds ~/ 60;
+    final seconds = _remainingSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   /// Refreshes state from gameLogic
   void _refreshState() {
+    // Check for capture sound (when chip count decreases)
+    final currentP1Chips = gameLogic.getChipCount(1);
+    final currentP2Chips = gameLogic.getChipCount(2);
+    final currentDamaCount = gameLogic.getDamaCount(1) + gameLogic.getDamaCount(2);
+    
+    // Detect captures
+    if (currentP1Chips < _previousPlayer1Chips || currentP2Chips < _previousPlayer2Chips) {
+      SoundService().playCaptured();
+    }
+    
+    // Detect Dama promotion
+    if (currentDamaCount > _previousDamaCount) {
+      SoundService().playDama();
+    }
+    
+    // Update previous counts
+    _previousPlayer1Chips = currentP1Chips;
+    _previousPlayer2Chips = currentP2Chips;
+    _previousDamaCount = currentDamaCount;
+    
     setState(() {
       chips = gameLogic.chips;
       currentPlayer = gameLogic.currentPlayer;
@@ -78,6 +203,7 @@ class _GameBoardState extends State<GameBoard> {
       selectedChip = gameLogic.selectedChip;
       isGameOver = gameLogic.isGameOver;
       mustContinueCapturing = gameLogic.mustContinueCapturing;
+      isCaptureAvailable = gameLogic.isCaptureAvailable; // Must capture rule
       
       // Update player models
       player1.score = player1Score;
@@ -91,6 +217,10 @@ class _GameBoardState extends State<GameBoard> {
         } else if (gameLogic.isDraw) {
           winnerMessage = 'Draw!';
         }
+        // Play game over sound
+        SoundService().playGameOver();
+        // Stop the timer when game is over
+        _stopTimer();
         // Show game over dialog
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showGameOverDialog();
@@ -106,6 +236,48 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   bool isOpponent(ChipModel a, ChipModel b) => gameLogic.isOpponent(a, b);
+
+  /// Check if a chip can move (considering must capture rule)
+  bool _canChipMove(ChipModel chip) {
+    // If must continue capturing (chain capture), only the chain chip can move
+    if (mustContinueCapturing) {
+      return gameLogic.currentChainChipModel != null &&
+             gameLogic.currentChainChipModel!.x == chip.x &&
+             gameLogic.currentChainChipModel!.y == chip.y;
+    }
+    // If capture is available, only chips that can capture can move
+    if (isCaptureAvailable) {
+      return gameLogic.chipCanCapture(chip);
+    }
+    // Otherwise, chip can move
+    return true;
+  }
+
+  /// Build chip with glow effect for chips that can capture
+  Widget _buildChipWithGlow(ChipModel chip, double cellSize) {
+    final bool canCapture = gameLogic.chipCanCapture(chip);
+    final bool shouldGlow = isCaptureAvailable && !mustContinueCapturing && canCapture && chip.owner == currentPlayer;
+    
+    return Container(
+      decoration: shouldGlow
+          ? BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withValues(alpha: 0.8),
+                  blurRadius: 15,
+                  spreadRadius: 3,
+                ),
+              ],
+            )
+          : null,
+      child: DraggablePiece(
+        chip: chip,
+        isDraggable: chip.owner == currentPlayer && !isGameOver && _canChipMove(chip),
+        size: cellSize * 0.8,
+      ),
+    );
+  }
 
   /// Check if a tile is a valid drop target
   bool _isValidDropTarget(int x, int y) {
@@ -149,6 +321,14 @@ class _GameBoardState extends State<GameBoard> {
     
     // Refresh state from game logic - this updates mustContinueCapturing
     _refreshState();
+    
+    // Restart timer after a valid move (only if turn switched and timer is enabled)
+    // Check if player changed (turn was switched)
+    final previousPlayer = currentPlayer;
+    _refreshState();
+    if (currentPlayer != previousPlayer && !mustContinueCapturing && widget.useTimer) {
+      _startTimer();
+    }
     
     // Trigger AI move if it's PvC mode and now AI's turn
     // Use gameLogic.currentPlayer to check if it's AI's turn after the move
@@ -201,6 +381,11 @@ class _GameBoardState extends State<GameBoard> {
     setState(() {
       isAIThinking = false;
     });
+    
+    // Restart timer after AI move (if turn switched to human and timer is enabled)
+    if (!isGameOver && gameLogic.currentPlayer == 1 && widget.useTimer) {
+      _startTimer();
+    }
   }
 
   /// Shows game over dialog
@@ -226,6 +411,10 @@ class _GameBoardState extends State<GameBoard> {
               // Restart game
               gameLogic.reset();
               _refreshState();
+              // Restart timer for new game (only if useTimer is true)
+              if (widget.useTimer) {
+                _startTimer();
+              }
             },
             child: const Text('Play Again'),
           ),
@@ -257,6 +446,10 @@ class _GameBoardState extends State<GameBoard> {
               // Reset game
               gameLogic.reset();
               _refreshState();
+              // Restart timer (only if useTimer is true)
+              if (widget.useTimer) {
+                _startTimer();
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Reset'),
@@ -291,6 +484,7 @@ class _GameBoardState extends State<GameBoard> {
                     chipsRemaining: chipsRemainingForPlayer(1),
                     capturedCount: player1Captured,
                     isActive: currentPlayer == 1,
+                    remainingTime: widget.useTimer && currentPlayer == 1 ? _remainingSeconds : null,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -300,6 +494,7 @@ class _GameBoardState extends State<GameBoard> {
                     chipsRemaining: chipsRemainingForPlayer(2),
                     capturedCount: player2Captured,
                     isActive: currentPlayer == 2,
+                    remainingTime: widget.useTimer && currentPlayer == 2 ? _remainingSeconds : null,
                   ),
                 ),
               ],
@@ -318,24 +513,6 @@ class _GameBoardState extends State<GameBoard> {
                   player1Name: 'Player 1',
                   player2Name: 'Player 2',
                 ),
-                // Show "Must Continue Capturing" indicator
-                // if (mustContinueCapturing)
-                //   Container(
-                //     margin: const EdgeInsets.only(top: 8),
-                //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                //     decoration: BoxDecoration(
-                //       color: Colors.orange,
-                //       borderRadius: BorderRadius.circular(20),
-                //     ),
-                //     child: const Text(
-                //       '⚠️ Must Continue Capturing!',
-                //       style: TextStyle(
-                //         color: Colors.white,
-                //         fontWeight: FontWeight.bold,
-                //         fontSize: 12,
-                //       ),
-                //     ),
-                //   ),
                 // Reset Game Button
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -446,11 +623,7 @@ class _GameBoardState extends State<GameBoard> {
                                       ),
                                     ),
                                   if (chipHere != null)
-                                    DraggablePiece(
-                                      chip: chipHere,
-                                      isDraggable: chipHere.owner == currentPlayer && !isGameOver && !mustContinueCapturing,
-                                      size: cellSize * 0.8,
-                                    ),
+                                    _buildChipWithGlow(chipHere, cellSize),
                                 ],
                               ),
                             ),

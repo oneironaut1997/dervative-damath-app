@@ -148,22 +148,49 @@ class GameLogic {
       return;
     }
 
+    // Check if any capture is available for current player (must capture rule)
+    final bool captureAvailable = hasAnyCaptureAvailable(currentPlayer);
+
     // Normal selection/move handling
     if (selectedChip == null) {
       // Try to select a chip
       final chip = chipAt(x, y);
       if (chip != null && chip.owner == currentPlayer) {
-        selectedChip = chip;
-        _logger.info('Selected chip at ($x, $y)');
+        // Must capture rule: if capture is available, can only select chips that can capture
+        if (captureAvailable) {
+          if (chipCanCapture(chip)) {
+            selectedChip = chip;
+            _logger.info('Selected capturing chip at ($x, $y)');
+          } else {
+            lastErrorMessage = 'Capture is available - must capture!';
+            _logger.warning('Cannot select non-capturing chip when capture is available');
+          }
+        } else {
+          // No capture available - can select any chip
+          selectedChip = chip;
+          _logger.info('Selected chip at ($x, $y)');
+        }
       }
       return;
     }
 
-    // If tapping on own chip, change selection
+    // If tapping on own chip, change selection (respecting must capture rule)
     final tappedChip = chipAt(x, y);
     if (tappedChip != null && tappedChip.owner == currentPlayer) {
-      selectedChip = tappedChip;
-      _logger.info('Changed selection to chip at ($x, $y)');
+      // Must capture rule: if capture is available, can only select chips that can capture
+      if (captureAvailable) {
+        if (chipCanCapture(tappedChip)) {
+          selectedChip = tappedChip;
+          _logger.info('Changed selection to capturing chip at ($x, $y)');
+        } else {
+          lastErrorMessage = 'Capture is available - must capture!';
+          _logger.warning('Cannot select non-capturing chip when capture is available');
+        }
+      } else {
+        // No capture available - can select any chip
+        selectedChip = tappedChip;
+        _logger.info('Changed selection to chip at ($x, $y)');
+      }
       return;
     }
 
@@ -174,6 +201,12 @@ class GameLogic {
     if (_canCapture(x, y, direction)) {
       _executeCapture(x, y);
     } else if (_canMove(x, y, direction)) {
+      // Must capture rule: if capture is available, cannot make regular move
+      if (captureAvailable) {
+        lastErrorMessage = 'Capture is available - must capture!';
+        _logger.warning('Cannot make regular move when capture is available');
+        return;
+      }
       _executeMove(x, y);
     } else {
       lastErrorMessage = 'Invalid move';
@@ -485,6 +518,12 @@ class GameLogic {
   /// Get the current chain chip (the chip that must continue capturing)
   ChipModel? get currentChainChipModel => currentChainChip;
 
+  /// Check if any capture is available for the current player (public getter for must capture rule)
+  bool get isCaptureAvailable => hasAnyCaptureAvailable(currentPlayer);
+
+  /// Get chips that can capture for the current player
+  List<ChipModel> get capturingChips => getChipsThatCanCapture(currentPlayer);
+
   /// End the current player's turn
   void _endTurn() {
     currentPlayer = currentPlayer == 1 ? 2 : 1;
@@ -759,6 +798,36 @@ class GameLogic {
     }
 
     return captures;
+  }
+
+  // ==================== MUST CAPTURE RULE ====================
+
+  /// Check if any capture is available for a player
+  /// This implements the "must capture" rule: if a capture is available,
+  /// the player must capture with a chip that can capture
+  bool hasAnyCaptureAvailable(int player) {
+    for (final chip in chips.where((c) => c.owner == player)) {
+      if (getAvailableCaptures(chip).isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Get all chips that can capture for a player
+  List<ChipModel> getChipsThatCanCapture(int player) {
+    final capturingChips = <ChipModel>[];
+    for (final chip in chips.where((c) => c.owner == player)) {
+      if (getAvailableCaptures(chip).isNotEmpty) {
+        capturingChips.add(chip);
+      }
+    }
+    return capturingChips;
+  }
+
+  /// Check if a specific chip can capture
+  bool chipCanCapture(ChipModel chip) {
+    return getAvailableCaptures(chip).isNotEmpty;
   }
 
   /// Get all valid moves for a player
