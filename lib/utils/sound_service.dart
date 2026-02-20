@@ -7,6 +7,8 @@ enum GameSound {
   dma,
   gameover,
   timeout,
+  music,
+  timer,
 }
 
 /// Service class for playing game sound effects.
@@ -27,12 +29,22 @@ class SoundService {
     GameSound.dma: 'dama.mp3',
     GameSound.gameover: 'gameover.mp3',
     GameSound.timeout: 'timeout.mp3',
+    GameSound.music: 'music.mp3',
+    GameSound.timer: 'timer.mp3',
   };
+
+  // Separate audio player for background music (to allow looping)
+  AudioPlayer? _musicPlayer;
+  bool _isMusicPlaying = false;
 
   /// Initialize the audio player
   Future<void> initialize() async {
     _player = AudioPlayer();
     await _player!.setReleaseMode(ReleaseMode.stop);
+    
+    // Initialize music player
+    _musicPlayer = AudioPlayer();
+    await _musicPlayer!.setReleaseMode(ReleaseMode.loop);
   }
 
   /// Play a sound effect
@@ -77,9 +89,74 @@ class SoundService {
     await play(GameSound.timeout);
   }
 
+  /// Play timer warning sound (when timer is <= 10 seconds)
+  Future<void> playTimerWarning() async {
+    await play(GameSound.timer);
+  }
+
+  /// Start background music (loops continuously)
+  Future<void> startBackgroundMusic() async {
+    if (_isMusicPlaying) return; // Already playing
+    
+    if (_musicPlayer == null) {
+      _musicPlayer = AudioPlayer();
+      await _musicPlayer!.setReleaseMode(ReleaseMode.loop);
+    }
+    
+    try {
+      await _musicPlayer!.setSource(UrlSource('/music.mp3'));
+      await _musicPlayer!.setVolume(0.4); // Set to 40% volume for background music
+      await _musicPlayer!.resume();
+      _isMusicPlaying = true;
+    } catch (e) {
+      print('Background music playback error: $e');
+    }
+  }
+
+  /// Stop background music
+  Future<void> stopBackgroundMusic() async {
+    if (!_isMusicPlaying) return;
+    
+    try {
+      await _musicPlayer?.stop();
+      _isMusicPlaying = false;
+    } catch (e) {
+      print('Error stopping background music: $e');
+    }
+  }
+
+  /// Pause background music
+  Future<void> pauseBackgroundMusic() async {
+    if (!_isMusicPlaying) return;
+    
+    try {
+      await _musicPlayer?.pause();
+    } catch (e) {
+      print('Error pausing background music: $e');
+    }
+  }
+
+  /// Resume background music
+  Future<void> resumeBackgroundMusic() async {
+    if (_isMusicPlaying) return;
+    
+    try {
+      await _musicPlayer?.resume();
+      _isMusicPlaying = true;
+    } catch (e) {
+      print('Error resuming background music: $e');
+    }
+  }
+
+  /// Check if background music is playing
+  bool get isMusicPlaying => _isMusicPlaying;
+
   /// Dispose the audio player
   Future<void> dispose() async {
     await _player?.dispose();
     _player = null;
+    await _musicPlayer?.dispose();
+    _musicPlayer = null;
+    _isMusicPlaying = false;
   }
 }

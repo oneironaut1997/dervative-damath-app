@@ -55,8 +55,8 @@ class _GameBoardState extends State<GameBoard> {
 
   // Turn timer variables
   Timer? _turnTimer;
-  int _remainingSeconds = 120; // 2 minutes per turn
-  static const int turnTimeLimit = 120; // 2 minutes in seconds
+  int _remainingSeconds = 120; // Remaining time for current turn
+  static const int turnTimeLimit = 120; // 2 minutes per turn
 
   final operations = getOperationsBoard(); // 8x8 String grid
 
@@ -70,8 +70,8 @@ class _GameBoardState extends State<GameBoard> {
     // Initialize AI if PvC mode
     if (widget.mode == 'PvC') {
       aiOpponent = AIOpponent(
-        // difficulty: AIDifficulty.medium, // Default to medium
-        difficulty: AIDifficulty.hard, // Default to medium
+        difficulty: AIDifficulty.medium, // Default to medium
+        // difficulty: AIDifficulty.hard, // Default to hard
         gameLogic: gameLogic,
       );
     }
@@ -102,10 +102,11 @@ class _GameBoardState extends State<GameBoard> {
     super.dispose();
   }
 
-  /// Start the turn timer
+  /// Start the turn timer - resets to full 2 minutes for each new turn
   void _startTimer() {
     _stopTimer();
-    _remainingSeconds = turnTimeLimit;
+    _remainingSeconds = turnTimeLimit; // Always reset to full 2 minutes
+    
     _turnTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -114,6 +115,11 @@ class _GameBoardState extends State<GameBoard> {
       setState(() {
         _remainingSeconds--;
       });
+      
+      // Play timer warning sound when timer is <= 10 seconds
+      if (_remainingSeconds <= 10 && _remainingSeconds > 0) {
+        SoundService().playTimerWarning();
+      }
       
       if (_remainingSeconds <= 0) {
         _onTurnTimeout();
@@ -312,6 +318,9 @@ class _GameBoardState extends State<GameBoard> {
     // Use gameLogic.currentPlayer to get the actual current player
     if (widget.mode == 'PvC' && (gameLogic.currentPlayer == 2 || isAIThinking)) return;
     
+    // Save the current player BEFORE making the move
+    final previousPlayer = currentPlayer;
+    
     // Delegate to game logic
     gameLogic.onTileTap(x, y);
     
@@ -326,8 +335,6 @@ class _GameBoardState extends State<GameBoard> {
     
     // Restart timer after a valid move (only if turn switched and timer is enabled)
     // Check if player changed (turn was switched)
-    final previousPlayer = currentPlayer;
-    _refreshState();
     if (currentPlayer != previousPlayer && !mustContinueCapturing && widget.useTimer) {
       _startTimer();
     }

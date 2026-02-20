@@ -1,4 +1,5 @@
 // home_screen.dart
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../utils/sound_service.dart';
@@ -83,7 +84,7 @@ void _showGameStartModal(BuildContext context, String mode) {
               
               // Subtitle
               Text(
-                mode == 'PvC' ? 'Play vs Computer' : 'Player vs Player',
+                mode == 'PvC' ? 'Player vs Computer' : 'Player vs Player',
                 style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF6B778C),
@@ -268,7 +269,7 @@ class _MainCard extends StatelessWidget {
               icon: Icons.sports_esports_rounded,
               iconColor: Colors.white,
             ),
-            title: 'Play vs Computer',
+            title: 'Player vs Computer',
             onTap: () => _showGameStartModal(context, 'PvC'),
           ),
           const SizedBox(height: 14),
@@ -313,7 +314,7 @@ class _MainCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             onTap: () {
               SoundService().playClick();
-              Navigator.of(context).maybePop();
+              exit(0);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),

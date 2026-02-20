@@ -80,7 +80,7 @@ class HowToPlayScreen extends StatelessWidget {
 
                         // Derivative Computation Rules
                         _SectionCard(
-                          title: '∫ Derivative Computation',
+                          title: 'Derivative Computation',
                           icon: Icons.calculate,
                           color: Color(0xFF8B5CF6),
                           content: _DerivativeContent(),
