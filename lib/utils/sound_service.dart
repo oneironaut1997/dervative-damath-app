@@ -42,9 +42,10 @@ class SoundService {
   /// Initialize the audio player
   Future<void> initialize() async {
     _player = AudioPlayer();
-    await _player!.setReleaseMode(ReleaseMode.stop);
+    // Use release mode that allows multiple sound effects to play
+    await _player!.setReleaseMode(ReleaseMode.release);
     
-    // Initialize music player
+    // Initialize music player with separate audio context
     _musicPlayer = AudioPlayer();
     await _musicPlayer!.setReleaseMode(ReleaseMode.loop);
   }
@@ -57,9 +58,8 @@ class SoundService {
     
     try {
       final filename = _soundPaths[sound]!;
-      // Use AssetSource for bundled assets (works on all platforms including mobile)
-      await _player!.setSource(AssetSource(filename));
-      await _player!.resume();
+      // Use play() directly for proper playback
+      await _player!.play(AssetSource(filename));
     } catch (e) {
       // Log error but don't crash
       print('Sound playback error for $sound: $e');
@@ -111,9 +111,9 @@ class SoundService {
     }
     
     try {
-      await _musicPlayer!.setSource(AssetSource('sounds/music.mp3'));
-      await _musicPlayer!.setVolume(0.4); // Set to 40% volume for background music
-      await _musicPlayer!.resume();
+      // Set volume BEFORE playing to ensure it's applied
+      await _musicPlayer!.setVolume(0.4);
+      await _musicPlayer!.play(AssetSource('sounds/music.mp3'));
       _isMusicPlaying = true;
     } catch (e) {
       print('Background music playback error: $e');

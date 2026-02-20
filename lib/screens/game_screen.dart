@@ -20,14 +20,14 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    // Start background music when game screen is shown
-    SoundService().startBackgroundMusic();
+    // Background music temporarily disabled
+    // SoundService().startBackgroundMusic();
   }
 
   @override
   void dispose() {
-    // Stop background music when leaving the game screen
-    SoundService().stopBackgroundMusic();
+    // Background music temporarily disabled
+    // SoundService().stopBackgroundMusic();
     super.dispose();
   }
 

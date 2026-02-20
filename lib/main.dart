@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'utils/sound_service.dart';
 
-void main() {
-  // Initialize sound service
-  SoundService().initialize();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SoundService().initialize();
   runApp(const DerivativeDamathApp());
 }
 
