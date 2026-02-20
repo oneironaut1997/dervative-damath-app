@@ -1,3 +1,5 @@
+// how_to_play_screen.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// A screen that explains how to play Derivative Damath.
@@ -9,78 +11,268 @@ class HowToPlayScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('How to Play'),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        elevation: 2,
+      body: Stack(
+        children: [
+          // Background layer matching home screen style
+          const _BackgroundLayer(),
+          
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom App Bar
+                _CustomAppBar(
+                  title: 'How to Play',
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+                
+                // Scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                    child: Column(
+                      children: const [
+                        // Game Objective
+                        _SectionCard(
+                          title: '🎯 Game Objective',
+                          icon: Icons.flag,
+                          color: Color(0xFF1D5BFF),
+                          content: _ObjectiveContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Movement Rules
+                        _SectionCard(
+                          title: '🏃 Movement Rules',
+                          icon: Icons.directions_walk,
+                          color: Color(0xFF2E7BFF),
+                          content: _MovementContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Capture Rules
+                        _SectionCard(
+                          title: '⚔️ Capture Rules',
+                          icon: Icons.gps_fixed,
+                          color: Color(0xFFE94B4B),
+                          content: _CaptureContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Derivative Computation Rules
+                        _SectionCard(
+                          title: '∫ Derivative Computation',
+                          icon: Icons.calculate,
+                          color: Color(0xFF8B5CF6),
+                          content: _DerivativeContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Scoring System
+                        _SectionCard(
+                          title: '🏆 Scoring System',
+                          icon: Icons.emoji_events,
+                          color: Color(0xFFF6A000),
+                          content: _ScoringContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Example Scenarios
+                        _SectionCard(
+                          title: '📖 Example Scenarios',
+                          icon: Icons.lightbulb,
+                          color: Color(0xFF17A85E),
+                          content: _ExampleContent(),
+                        ),
+                        SizedBox(height: 20),
+
+                        // Back to Menu Button
+                        _BackButton(),
+                        SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              // Game Objective
-              _SectionCard(
-                title: '🎯 Game Objective',
-                icon: Icons.flag,
-                color: Colors.indigo,
-                content: _ObjectiveContent(),
-              ),
-              SizedBox(height: 16),
+    );
+  }
+}
 
-              // Movement Rules
-              _SectionCard(
-                title: '🏃 Movement Rules',
-                icon: Icons.directions_walk,
-                color: Colors.blue,
-                content: _MovementContent(),
-              ),
-              SizedBox(height: 16),
+class _BackgroundLayer extends StatelessWidget {
+  const _BackgroundLayer();
 
-              // Capture Rules
-              _SectionCard(
-                title: '⚔️ Capture Rules',
-                icon: Icons.gps_fixed,
-                color: Colors.red,
-                content: _CaptureContent(),
-              ),
-              SizedBox(height: 16),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFF3F7FF),
+            Color(0xFFEAF2FF),
+            Color(0xFFEFEFFF),
+            Color(0xFFEBE8FF),
+          ],
+          stops: [0.0, 0.45, 0.78, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Soft blobs
+          const _Blob(
+            alignment: Alignment.topRight,
+            size: 300,
+            colors: [Color(0x3300B2FF), Color(0x0000B2FF)],
+            offset: Offset(100, -60),
+          ),
+          const _Blob(
+            alignment: Alignment.bottomLeft,
+            size: 350,
+            colors: [Color(0x332C63FF), Color(0x002C63FF)],
+            offset: Offset(-120, 100),
+          ),
+          const _Blob(
+            alignment: Alignment.bottomRight,
+            size: 320,
+            colors: [Color(0x332A8CFF), Color(0x002A8CFF)],
+            offset: Offset(140, 180),
+          ),
 
-              // Derivative Computation Rules
-              _SectionCard(
-                title: '∫ Derivative Computation',
-                icon: Icons.calculate,
-                color: Colors.purple,
-                content: _DerivativeContent(),
+          // Faint symbols
+          Positioned(
+            left: 18,
+            top: 100,
+            child: Opacity(
+              opacity: 0.10,
+              child: Text(
+                'dy\ndx',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.blueGrey.shade700,
+                  height: 1.0,
+                ),
               ),
-              SizedBox(height: 16),
-
-              // Scoring System
-              _SectionCard(
-                title: '🏆 Scoring System',
-                icon: Icons.emoji_events,
-                color: Colors.amber,
-                content: _ScoringContent(),
+            ),
+          ),
+          Positioned(
+            right: 26,
+            top: 180,
+            child: Opacity(
+              opacity: 0.08,
+              child: Text(
+                '∫',
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.blueGrey.shade700,
+                ),
               ),
-              SizedBox(height: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-              // Example Scenarios
-              _SectionCard(
-                title: '📖 Example Scenarios',
-                icon: Icons.lightbulb,
-                color: Colors.green,
-                content: _ExampleContent(),
+class _Blob extends StatelessWidget {
+  final Alignment alignment;
+  final double size;
+  final List<Color> colors;
+  final Offset offset;
+
+  const _Blob({
+    required this.alignment,
+    required this.size,
+    required this.colors,
+    required this.offset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: alignment,
+      child: Transform.translate(
+        offset: offset,
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: colors,
+                stops: const [0.0, 1.0],
               ),
-              SizedBox(height: 24),
-
-              // Back to Menu Button
-              _BackButton(),
-              SizedBox(height: 16),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CustomAppBar extends StatelessWidget {
+  final String title;
+  final VoidCallback onBack;
+
+  const _CustomAppBar({
+    required this.title,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+      child: Row(
+        children: [
+          // Back button
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onBack,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.90),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x142E5AAC),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: Color(0xFF1D5BFF),
+                size: 24,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Title
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0D2045),
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -101,13 +293,25 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.93),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F2E5AAC),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Color(0x0F2E5AAC),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -115,21 +319,22 @@ class _SectionCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: color, size: 24),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0D2045),
                     ),
                   ),
                 ),
@@ -155,24 +360,14 @@ class _ObjectiveContent extends StatelessWidget {
       children: [
         Text(
           'Derivative Damath combines the traditional Filipino board game "Damath" with calculus derivatives. The goal is to:',
-          style: TextStyle(color: Colors.grey[700], height: 1.5),
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        _BulletPoint(
-          text: 'Capture opponent\'s chips by landing on their tile',
-        ),
-        _BulletPoint(
-          text: 'Compute derivatives of your polynomial chip',
-        ),
-        _BulletPoint(
-          text: 'Compare your derivative result with the operation tile',
-        ),
-        _BulletPoint(
-          text: 'Score points based on correct computation',
-        ),
-        _BulletPoint(
-          text: 'Win by capturing all opponent chips or having the highest score',
-        ),
+        const _BulletPoint(text: "Capture opponent's chips by landing on their tile"),
+        const _BulletPoint(text: 'Compute derivatives of your polynomial chip'),
+        const _BulletPoint(text: 'Compare your derivative result with the operation tile'),
+        const _BulletPoint(text: 'Score points based on correct computation'),
+        const _BulletPoint(text: 'Win by capturing all opponent chips or having the highest score'),
       ],
     );
   }
@@ -186,18 +381,18 @@ class _MovementContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SubHeader(text: 'Regular Chips (Pawn)'),
+        const _SubHeader(text: 'Regular Chips (Pawn)'),
         const SizedBox(height: 8),
         Text(
           '• Move diagonally forward only (one step)\n• Can only move to empty tiles\n• Cannot move backward until promoted to Dama',
-          style: TextStyle(color: Colors.grey[700], height: 1.6),
+          style: TextStyle(color: Colors.grey[700], height: 1.6, fontSize: 14),
         ),
         const SizedBox(height: 16),
-        _SubHeader(text: 'Dama (King) Chips'),
+        const _SubHeader(text: 'Dama (King) Chips'),
         const SizedBox(height: 8),
         Text(
           '• Can move diagonally in ANY direction (forward & backward)\n• Can move multiple tiles in a straight line\n• Promoted when reaching the opposite end of the board',
-          style: TextStyle(color: Colors.grey[700], height: 1.6),
+          style: TextStyle(color: Colors.grey[700], height: 1.6, fontSize: 14),
         ),
       ],
     );
@@ -214,37 +409,37 @@ class _CaptureContent extends StatelessWidget {
       children: [
         Text(
           'To capture an opponent\'s chip:',
-          style: TextStyle(color: Colors.grey[700], height: 1.5),
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        _BulletPoint(
-          text: 'Jump diagonally over the opponent\'s chip',
-        ),
-        _BulletPoint(
-          text: 'Land on the empty tile directly behind the opponent',
-        ),
-        _BulletPoint(
-          text: 'The captured chip is removed from the board',
-        ),
-        _BulletPoint(
-          text: 'Chain captures are allowed (capture multiple in one turn)',
-        ),
+        const _BulletPoint(text: 'Jump diagonally over the opponent\'s chip'),
+        const _BulletPoint(text: 'Land on the empty tile directly behind the opponent'),
+        const _BulletPoint(text: 'The captured chip is removed from the board'),
+        const _BulletPoint(text: 'Chain captures are allowed (capture multiple in one turn)'),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue[200]!),
+            color: const Color(0xFFE9F2FF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD4E6FF)),
           ),
           child: Row(
             children: [
-              Icon(Icons.info, color: Colors.blue[700], size: 20),
-              const SizedBox(width: 8),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D5BFF).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.info_outline, color: Color(0xFF1D5BFF), size: 20),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Example: Your chip at (2,2) can capture opponent at (3,3) by landing at (4,4)',
-                  style: TextStyle(color: Colors.blue[700], fontSize: 13),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
                 ),
               ),
             ],
@@ -265,21 +460,15 @@ class _DerivativeContent extends StatelessWidget {
       children: [
         Text(
           'Each chip contains a polynomial. After moving:',
-          style: TextStyle(color: Colors.grey[700], height: 1.5),
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        _BulletPoint(
-          text: 'Compute the derivative of your chip\'s polynomial',
-        ),
-        _BulletPoint(
-          text: 'Apply the operation on the tile you landed on',
-        ),
-        _BulletPoint(
-          text: 'If your derivative matches the operation result → Points!',
-        ),
-        const SizedBox(height: 12),
-        _SubHeader(text: 'Basic Derivative Rules:'),
-        const SizedBox(height: 8),
+        const _BulletPoint(text: 'Compute the derivative of your chip\'s polynomial'),
+        const _BulletPoint(text: 'Apply the operation on the tile you landed on'),
+        const _BulletPoint(text: 'If your derivative matches the operation result → Points!'),
+        const SizedBox(height: 14),
+        const _SubHeader(text: 'Basic Derivative Rules:'),
+        const SizedBox(height: 10),
         _RuleExample(
           formula: 'd/dx(xⁿ) = n·xⁿ⁻¹',
           example: 'd/dx(x³) = 3x²',
@@ -307,31 +496,40 @@ class _ScoringContent extends StatelessWidget {
       children: [
         Text(
           'Points are earned based on your move:',
-          style: TextStyle(color: Colors.grey[700], height: 1.5),
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        _ScoreItem(points: '+1', description: 'Base points for any valid move'),
-        _ScoreItem(points: '+2', description: 'Capturing an opponent\'s chip'),
-        _ScoreItem(points: '+3', description: 'Moving a Dama (promoted chip)'),
-        _ScoreItem(points: '+1', description: 'Each additional chain capture'),
-        const SizedBox(height: 12),
+        const _ScoreItem(points: '+1', description: 'Base points for any valid move'),
+        const _ScoreItem(points: '+2', description: "Capturing an opponent's chip"),
+        const _ScoreItem(points: '+3', description: 'Moving a Dama (promoted chip)'),
+        const _ScoreItem(points: '+1', description: 'Each additional chain capture'),
+        const SizedBox(height: 14),
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.amber[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber[200]!),
+            color: const Color(0xFFFFF8E9),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFFE4B3)),
           ),
           child: Row(
             children: [
-              Icon(Icons.star, color: Colors.amber[700], size: 20),
-              const SizedBox(width: 8),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6A000).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.star, color: Color(0xFFF6A000), size: 20),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Bonus: +5 points for a perfect derivative computation!',
                   style: TextStyle(
-                    color: Colors.amber[700],
-                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -362,7 +560,7 @@ class _ExampleContent extends StatelessWidget {
           derivative: '6x²',
           points: '+1',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _ExampleScenario(
           number: 2,
           title: 'Capture Move',
@@ -375,14 +573,14 @@ class _ExampleContent extends StatelessWidget {
           points: '+2',
           isCapture: true,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _ExampleScenario(
           number: 3,
           title: 'Chain Capture',
           description:
               'With a Dama chip, you can make multiple captures in one turn. '
               'Each additional capture adds +1 bonus point!',
-          chip: '4x² (Dama)',
+          chip: '4x²',
           operation: '+/−',
           derivative: '8x',
           points: '+3+',
@@ -405,11 +603,19 @@ class _BulletPoint extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('• ', style: TextStyle(fontSize: 16)),
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(top: 7, right: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D5BFF),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: Colors.grey[700], height: 1.4),
+              style: TextStyle(color: Colors.grey[700], height: 1.4, fontSize: 14),
             ),
           ),
         ],
@@ -428,9 +634,9 @@ class _SubHeader extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w800,
         fontSize: 15,
-        color: Colors.black87,
+        color: Color(0xFF0D2045),
       ),
     );
   }
@@ -445,18 +651,19 @@ class _RuleExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 8, top: 6),
-            decoration: const BoxDecoration(
-              color: Colors.purple,
-              shape: BoxShape.circle,
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: const Icon(Icons.functions, color: Color(0xFF8B5CF6), size: 18),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: RichText(
               text: TextSpan(
@@ -465,8 +672,9 @@ class _RuleExample extends StatelessWidget {
                   TextSpan(
                     text: formula,
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       fontFamily: 'monospace',
+                      color: Color(0xFF0D2045),
                     ),
                   ),
                   const TextSpan(text: '  →  '),
@@ -494,24 +702,34 @@ class _ScoreItem extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.amber[100],
-              borderRadius: BorderRadius.circular(4),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF6A000), Color(0xFFE69500)],
+              ),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFF6A000).withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Text(
               points,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.amber[800],
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontSize: 13,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
               description,
-              style: TextStyle(color: Colors.grey[700]),
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
             ),
           ),
         ],
@@ -546,108 +764,128 @@ class _ExampleScenario extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        color: Colors.white.withValues(alpha: 0.80),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.green,
-                child: Text(
-                  '$number',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF17A85E), Color(0xFF148F4D)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '$number',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: Color(0xFF0D2045),
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green[100],
-                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFF17A85E).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   points,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green[800],
-                    fontSize: 12,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF17A85E),
+                    fontSize: 13,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             description,
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           // Visual representation
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _ChipDisplay(chip: chip, isDama: isDama),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward, color: Colors.grey),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
+              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF6B778C), size: 20),
+              const SizedBox(width: 10),
               Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.orange[100],
-                  borderRadius: BorderRadius.circular(4),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFC24A), Color(0xFFFF8C2A)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   operation,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: Colors.orange[800],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward, color: Colors.grey),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
+              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF6B778C), size: 20),
+              const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.purple[100],
-                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   derivative,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
                     fontFamily: 'monospace',
-                    color: Colors.purple[800],
+                    color: Color(0xFF8B5CF6),
+                    fontSize: 13,
                   ),
                 ),
               ),
               if (isCapture) ...[
                 const SizedBox(width: 12),
-                const Icon(Icons.gps_fixed, color: Colors.red, size: 20),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE94B4B).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.gps_fixed, color: Color(0xFFE94B4B), size: 18),
+                ),
               ],
             ],
           ),
@@ -666,20 +904,24 @@ class _ChipDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: Colors.blue,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2E7BFF), Color(0xFF0D49E9)],
+        ),
         shape: BoxShape.circle,
         border: Border.all(
-          color: isDama ? Colors.amber : Colors.black,
+          color: isDama ? const Color(0xFFFFC24A) : Colors.white,
           width: isDama ? 3 : 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF2E7BFF).withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -692,13 +934,13 @@ class _ChipDisplay extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
             ),
           ),
           if (isDama)
             const Icon(
               Icons.star,
-              color: Colors.amber,
+              color: Color(0xFFFFC24A),
               size: 10,
             ),
         ],
@@ -712,23 +954,42 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: const Icon(Icons.arrow_back),
-        label: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('Back to Menu'),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.indigo,
-          foregroundColor: Colors.white,
-          shape: const StadiumBorder(),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => Navigator.of(context).pop(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2E7BFF), Color(0xFF0D49E9)],
           ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2E7BFF).withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+            SizedBox(width: 10),
+            Text(
+              'Back to Menu',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
         ),
       ),
     );
