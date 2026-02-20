@@ -3,6 +3,7 @@ import 'package:derivative_damath/models/chip_model.dart';
 import 'package:derivative_damath/models/operation_model.dart';
 import 'package:derivative_damath/models/game_state_model.dart';
 import 'package:derivative_damath/models/player_model.dart';
+import 'package:derivative_damath/models/move_history_model.dart';
 import 'package:derivative_damath/utils/derivative_rules.dart';
 import 'package:derivative_damath/utils/score_calculator.dart';
 import 'initial_positions.dart';
@@ -79,6 +80,10 @@ class GameLogic {
   final List<String> positionHistory = [];
   static const int maxPositionRepeats = 3;
 
+  // Move history tracking for the moves history feature
+  final List<MoveHistoryEntry> moveHistory = [];
+  int _moveCounter = 0;
+
   // Create a logger instance
   final Logger _logger = Logger('GameLogic');
 
@@ -130,6 +135,100 @@ class GameLogic {
       if (pos == current) count++;
     }
     return count >= maxPositionRepeats;
+  }
+
+  // ==================== MOVE HISTORY TRACKING ====================
+
+  /// Records a move in the move history
+  void _recordMove({
+    required int fromX,
+    required int fromY,
+    required int toX,
+    required int toY,
+    required Map<int, int> chipTerms,
+    bool isCapture = false,
+    String? capturedChipTerms,
+    String operation = '',
+    double pointsEarned = 0,
+    String calculationDetails = '',
+    bool isDamaPromotion = false,
+    int captureCount = 0,
+  }) {
+    _moveCounter++;
+    
+    final entry = MoveHistoryEntry(
+      moveNumber: _moveCounter,
+      player: currentPlayer,
+      fromX: fromX,
+      fromY: fromY,
+      toX: toX,
+      toY: toY,
+      isCapture: isCapture,
+      capturedChipTerms: capturedChipTerms,
+      operation: operation,
+      pointsEarned: pointsEarned,
+      calculationDetails: calculationDetails,
+      chipTerms: _formatTerms(chipTerms),
+      isDamaPromotion: isDamaPromotion,
+      captureCount: captureCount > 0 ? captureCount : (isCapture ? 1 : 0),
+    );
+    
+    moveHistory.add(entry);
+    _logger.info('Recorded move #$_moveCounter: Player $currentPlayer $entry.moveString');
+  }
+
+  /// Formats polynomial terms as a readable string
+  String _formatTerms(Map<int, int> terms) {
+    if (terms.isEmpty) return '0';
+    
+    final buffer = StringBuffer();
+    final sortedEntries = terms.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    
+    for (int i = 0; i < sortedEntries.length; i++) {
+      final entry = sortedEntries[i];
+      final exp = entry.key;
+      final coeff = entry.value;
+      
+      if (coeff == 0) continue;
+      
+      if (i > 0) {
+        buffer.write(coeff > 0 ? ' + ' : ' - ');
+      } else if (coeff < 0) {
+        buffer.write('-');
+      }
+      
+      final absCoeff = coeff.abs();
+      if (exp == 0) {
+        buffer.write(absCoeff);
+      } else if (absCoeff == 1) {
+        buffer.write('x');
+      } else {
+        buffer.write('${absCoeff}x');
+      }
+      
+      if (exp > 1) buffer.write(_superscript(exp));
+    }
+    
+    return buffer.toString();
+  }
+
+  /// Creates superscript string for exponents
+  String _superscript(int exp) {
+    const supers = {
+      '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵',
+      '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+    };
+    return exp.toString().split('').map((d) => supers[d] ?? '^$d').join();
+  }
+
+  /// Gets the move history (public getter)
+  List<MoveHistoryEntry> get history => List.unmodifiable(moveHistory);
+
+  /// Clears the move history
+  void clearHistory() {
+    moveHistory.clear();
+    _moveCounter = 0;
   }
 
   // ==================== TILE TAP HANDLING ====================
@@ -345,6 +444,11 @@ class GameLogic {
   void _executeMove(int x, int y) {
     _logger.info('Executing move from (${selectedChip!.x},${selectedChip!.y}) to ($x, $y)');
 
+    // Store previous position for history
+    final fromX = selectedChip!.x;
+    final fromY = selectedChip!.y;
+    final chipTerms = Map<int, int>.from(selectedChip!.terms);
+    
     // Check for operation tile
     final moveResult = processOperationMove(x, y);
 
@@ -358,7 +462,26 @@ class GameLogic {
     selectedChip!.y = y;
 
     // Check for Dama promotion after move
-    _checkAndPromoteDama(x, y);
+    final isDamaPromotion = _checkAndPromoteDama(x, y);
+    
+    // Get the operation at target position
+    final operation = getOperationAt(x, y) ?? '';
+    
+    // Record this move in history
+    _recordMove(
+      fromX: fromX,
+      fromY: fromY,
+      toX: x,
+      toY: y,
+      chipTerms: chipTerms,
+      isCapture: false,
+      operation: operation,
+      pointsEarned: 0, // Regular moves don't earn points per PDF spec
+      calculationDetails: isDamaPromotion 
+          ? 'Chip promoted to Dama at row ${y + 1}' 
+          : 'Moved to position ($x, $y)',
+      isDamaPromotion: isDamaPromotion,
+    );
 
     // Record position for draw detection
     _recordPosition();
@@ -374,6 +497,11 @@ class GameLogic {
 
   /// Execute a capture
   void _executeCapture(int x, int y) {
+    // Store previous position for history
+    final fromX = selectedChip!.x;
+    final fromY = selectedChip!.y;
+    final chipTerms = Map<int, int>.from(selectedChip!.terms);
+    
     // Check for Dama promotion before capture (Dama can capture from promotion row)
     final willPromote = _checkAndPromoteDama(x, y);
     
@@ -395,6 +523,10 @@ class GameLogic {
     }
 
     _logger.info('Executing capture from (${selectedChip!.x},${selectedChip!.y}) to ($x, $y), capturing at ($captureMidX, $captureMidY)');
+
+    // Store captured chip terms before removing
+    final capturedChipTerms = Map<int, int>.from(capturedChip.terms);
+    final capturedChipTermsStr = _formatTerms(capturedChipTerms);
 
     // Remove captured chip
     chips.remove(capturedChip);
@@ -425,6 +557,7 @@ class GameLogic {
 
     // Calculate score with chain captures using PDF specification
     double moveScore = 0;
+    String calcDetails = '';
     
     // For captures, we need to calculate per PDF spec
     final operationSymbol = getOperationAt(x, y);
@@ -446,15 +579,45 @@ class GameLogic {
       // Apply Dama multipliers per PDF spec
       if (isTakerDama && isTakenDama) {
         moveScore *= 4; // Both are Dama
+        calcDetails = ' (4x Dama multiplier - both Dama)';
       } else if (isTakerDama || isTakenDama) {
         moveScore *= 2; // One is Dama
+        calcDetails = ' (2x Dama multiplier)';
       }
+      
+      // Build calculation details
+      final xValue = (x - y).abs();
+      calcDetails = 'd/dx($operationSymbol ${_formatTerms(capturedChipTerms)}) '
+          'evaluated at x=$xValue = ${moveScore.toStringAsFixed(1)}${promoted ? ' + promotion bonus' : ''}'
+          + calcDetails;
     }
 
     // Add chain capture bonus (1 point per additional capture)
     if (captureChainDepth > 1) {
       moveScore += (captureChainDepth - 1) * 1;
+      calcDetails += ' +${captureChainDepth - 1} chain bonus';
     }
+
+    // Get the operation symbol for history
+    final operation = operationSymbol ?? '';
+
+    // Record this capture in history
+    _recordMove(
+      fromX: fromX,
+      fromY: fromY,
+      toX: x,
+      toY: y,
+      chipTerms: chipTerms,
+      isCapture: true,
+      capturedChipTerms: capturedChipTermsStr,
+      operation: operation,
+      pointsEarned: moveScore,
+      calculationDetails: calcDetails.isNotEmpty 
+          ? calcDetails 
+          : 'Captured chip at ($captureMidX, $captureMidY)',
+      isDamaPromotion: promoted,
+      captureCount: captureChainDepth,
+    );
 
     _updateScore(moveScore);
 
@@ -1215,6 +1378,9 @@ class GameLogic {
     gamePhase = GamePhase.playing;
     winner = null;
     positionHistory.clear();
+    
+    // Clear move history
+    clearHistory();
   }
 
   /// Get chips for a player

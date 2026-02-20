@@ -7,6 +7,7 @@ import '../utils/operations_layout.dart';
 import '../utils/game_logic.dart';
 import '../utils/ai_opponent.dart';
 import '../utils/sound_service.dart';
+import '../widgets/move_history_modal.dart';
 import 'score_board.dart';
 import 'player_info_card.dart';
 import 'draggable_piece.dart';
@@ -459,6 +460,16 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
+  /// Shows the move history modal
+  void _showMoveHistory(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => MoveHistoryModal(
+        history: gameLogic.history,
+      ),
+    );
+  }
+
   /// Gets the number of chips remaining for a player
   int chipsRemainingForPlayer(int playerNumber) {
     return gameLogic.getChipCount(playerNumber);
@@ -516,14 +527,32 @@ class _GameBoardState extends State<GameBoard> {
                 // Reset Game Button
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: IconButton(
-                    onPressed: () => _showResetConfirmationDialog(),
-                    icon: const Icon(Icons.refresh),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(8),
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // History Button
+                      IconButton(
+                        onPressed: () => _showMoveHistory(context),
+                        icon: const Icon(Icons.history),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(8),
+                        ),
+                        tooltip: 'Move History',
+                      ),
+                      const SizedBox(width: 12),
+                      // Reset Button
+                      IconButton(
+                        onPressed: () => _showResetConfirmationDialog(),
+                        icon: const Icon(Icons.refresh),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
