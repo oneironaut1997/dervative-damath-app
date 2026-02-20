@@ -378,6 +378,12 @@ class MoveHistoryModal extends StatelessWidget {
               ),
             ],
             
+            // Enhanced calculation breakdown (step-by-step)
+            if (entry.calculationBreakdown != null) ...[
+              const SizedBox(height: 8),
+              _buildCalculationBreakdown(entry.calculationBreakdown!),
+            ],
+            
             // Points earned
             if (entry.pointsEarned > 0) ...[
               const SizedBox(height: 8),
@@ -433,6 +439,186 @@ class MoveHistoryModal extends StatelessWidget {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the step-by-step calculation breakdown display
+  Widget _buildCalculationBreakdown(CalculationBreakdown breakdown) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.blue.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.2),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calculate, size: 16, color: Colors.blue),
+                const SizedBox(width: 8),
+                const Text(
+                  'Calculation Breakdown',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Score: ${breakdown.finalScore.toStringAsFixed(1)}',
+                  style: const TextStyle(
+                    color: Colors.amber,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Steps
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: breakdown.steps.map((step) => _buildStepWidget(step, breakdown)).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a single step in the calculation breakdown
+  Widget _buildStepWidget(CalculationStep step, CalculationBreakdown breakdown) {
+    // Get color based on step icon/type
+    Color stepColor;
+    switch (step.iconName) {
+      case 'combine':
+        stepColor = Colors.blue;
+        break;
+      case 'derivative':
+        stepColor = Colors.purple;
+        break;
+      case 'calculate':
+        stepColor = Colors.green;
+        break;
+      case 'star':
+        stepColor = Colors.amber;
+        break;
+      case 'bolt':
+        stepColor = Colors.orange;
+        break;
+      default:
+        stepColor = Colors.white70;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: stepColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: stepColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Step header
+          Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: stepColor.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    '${step.stepNumber}',
+                    style: TextStyle(
+                      color: stepColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  step.title,
+                  style: TextStyle(
+                    color: stepColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Description
+          Text(
+            step.description,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Expression
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              step.expression,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          // Result if available
+          if (step.result != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '= ${step.result}',
+                  style: TextStyle(
+                    color: stepColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

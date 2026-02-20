@@ -45,6 +45,7 @@ class _GameBoardState extends State<GameBoard> {
   int _previousPlayer1Chips = 12;
   int _previousPlayer2Chips = 12;
   int _previousDamaCount = 0;
+  bool _moveMade = false; // Track if a move was made (for move sound)
 
   // Player models for PlayerInfoCard
   late PlayerModel player1;
@@ -191,7 +192,13 @@ class _GameBoardState extends State<GameBoard> {
     // Detect captures
     if (currentP1Chips < _previousPlayer1Chips || currentP2Chips < _previousPlayer2Chips) {
       SoundService().playCaptured();
+    } else if (_moveMade && !isGameOver) {
+      // No capture happened but a move was made - play move sound
+      SoundService().playMove();
     }
+    
+    // Reset move flag after handling
+    _moveMade = false;
     
     // Detect Dama promotion
     if (currentDamaCount > _previousDamaCount) {
@@ -307,6 +314,7 @@ class _GameBoardState extends State<GameBoard> {
     
     // Select the chip and make the move
     selectedChip = chip;
+    _moveMade = true; // Mark that a move was attempted
     onTileTap(toX, toY);
   }
 
@@ -355,8 +363,8 @@ class _GameBoardState extends State<GameBoard> {
       isAIThinking = true;
     });
     
-    // Small delay for better UX
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 2 second delay before computer moves for better UX
+    await Future.delayed(const Duration(milliseconds: 2000));
     
     if (isGameOver) return;
     
@@ -365,6 +373,7 @@ class _GameBoardState extends State<GameBoard> {
     
     if (move != null) {
       // Execute the AI move
+      _moveMade = true; // Mark that AI made a move
       gameLogic.executeMove(move);
       
       // Update captured count

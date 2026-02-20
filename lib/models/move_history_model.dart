@@ -1,3 +1,113 @@
+/// Step-by-step breakdown of the derivative calculation for educational purposes.
+/// 
+/// This class provides detailed explanations of how each capture move's
+/// derivative computation works, making it easier for players to understand
+/// the mathematical process behind scoring.
+class CalculationBreakdown {
+  /// Original moving chip terms (formatted polynomial)
+  final String movingChipTerms;
+
+  /// Target chip terms (for captures), formatted as string
+  final String? targetChipTerms;
+
+  /// Operation symbol applied (+, −, ×, ÷)
+  final String operation;
+
+  /// Result after applying the operation (combined polynomial)
+  final String combinedTerms;
+
+  /// Derivative formula after differentiation
+  final String derivativeFormula;
+
+  /// Evaluation point x = |x - y| (values: 1, 3, 5, or 7)
+  final int evaluationPoint;
+
+  /// Result before applying Dama multiplier
+  final double resultBeforeMultiplier;
+
+  /// Dama multiplier applied (1x, 2x, or 4x)
+  final int dameMultiplier;
+
+  /// Chain capture bonus added
+  final int chainBonus;
+
+  /// Final calculated score
+  final double finalScore;
+
+  /// Whether the derivative resulted in a constant (no x variable)
+  final bool isConstantDerivative;
+
+  /// Explanation of each step for display
+  final List<CalculationStep> steps;
+
+  const CalculationBreakdown({
+    required this.movingChipTerms,
+    this.targetChipTerms,
+    required this.operation,
+    required this.combinedTerms,
+    required this.derivativeFormula,
+    required this.evaluationPoint,
+    required this.resultBeforeMultiplier,
+    this.dameMultiplier = 1,
+    this.chainBonus = 0,
+    required this.finalScore,
+    this.isConstantDerivative = false,
+    required this.steps,
+  });
+
+  /// Returns a formatted string showing the complete calculation
+  String get fullCalculation {
+    final buffer = StringBuffer();
+    buffer.writeln('Step 1: Combine chips using $operation');
+    buffer.writeln('  $movingChipTerms $operation ${targetChipTerms ?? ""} = $combinedTerms');
+    buffer.writeln('Step 2: Take derivative');
+    buffer.writeln('  d/dx($combinedTerms) = $derivativeFormula');
+    buffer.writeln('Step 3: Evaluate at x = $evaluationPoint');
+    if (isConstantDerivative) {
+      buffer.writeln('  (constant - no x variable)');
+    }
+    buffer.writeln('  = ${resultBeforeMultiplier.toStringAsFixed(1)}');
+    if (dameMultiplier > 1) {
+      buffer.writeln('Step 4: Apply ${dameMultiplier}x Dama multiplier');
+      buffer.writeln('  ${resultBeforeMultiplier.toStringAsFixed(1)} × $dameMultiplier = ${finalScore.toStringAsFixed(1)}');
+    }
+    if (chainBonus > 0) {
+      buffer.writeln('Step 5: Add chain bonus (+$chainBonus)');
+    }
+    return buffer.toString();
+  }
+}
+
+/// Represents a single step in the calculation breakdown.
+class CalculationStep {
+  /// Step number (1-based)
+  final int stepNumber;
+
+  /// Title of the step
+  final String title;
+
+  /// Description of what happens in this step
+  final String description;
+
+  /// The mathematical expression for this step
+  final String expression;
+
+  /// Result of this step
+  final String? result;
+
+  /// Icon identifier for the step
+  final String iconName;
+
+  const CalculationStep({
+    required this.stepNumber,
+    required this.title,
+    required this.description,
+    required this.expression,
+    this.result,
+    required this.iconName,
+  });
+}
+
 /// Represents a single move in the game's move history.
 /// 
 /// This model stores all information about a move including:
@@ -7,6 +117,10 @@
 /// - The operation tile used (if any)
 /// - The derivative calculation details
 /// - Points earned from the move
+/// - Step-by-step calculation breakdown for educational purposes
+/// 
+/// The [CalculationBreakdown] provides detailed step-by-step explanations
+/// of how the derivative computation works for capture moves.
 class MoveHistoryEntry {
   /// Unique move number in the game (starts from 1)
   final int moveNumber;
@@ -50,6 +164,10 @@ class MoveHistoryEntry {
   /// Number of chips captured in this move (chain captures)
   final int captureCount;
 
+  /// Detailed step-by-step breakdown of the calculation
+  /// Provides educational explanation of derivative computation
+  final CalculationBreakdown? calculationBreakdown;
+
   const MoveHistoryEntry({
     required this.moveNumber,
     required this.player,
@@ -65,6 +183,7 @@ class MoveHistoryEntry {
     this.chipTerms = '',
     this.isDamaPromotion = false,
     this.captureCount = 0,
+    this.calculationBreakdown,
   });
 
   /// Returns the player color name
@@ -120,6 +239,7 @@ class MoveHistoryEntry {
     String? chipTerms,
     bool? isDamaPromotion,
     int? captureCount,
+    CalculationBreakdown? calculationBreakdown,
   }) {
     return MoveHistoryEntry(
       moveNumber: moveNumber ?? this.moveNumber,
@@ -136,6 +256,7 @@ class MoveHistoryEntry {
       chipTerms: chipTerms ?? this.chipTerms,
       isDamaPromotion: isDamaPromotion ?? this.isDamaPromotion,
       captureCount: captureCount ?? this.captureCount,
+      calculationBreakdown: calculationBreakdown ?? this.calculationBreakdown,
     );
   }
 

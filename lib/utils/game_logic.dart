@@ -153,6 +153,7 @@ class GameLogic {
     String calculationDetails = '',
     bool isDamaPromotion = false,
     int captureCount = 0,
+    CalculationBreakdown? calculationBreakdown,
   }) {
     _moveCounter++;
     
@@ -171,6 +172,7 @@ class GameLogic {
       chipTerms: _formatTerms(chipTerms),
       isDamaPromotion: isDamaPromotion,
       captureCount: captureCount > 0 ? captureCount : (isCapture ? 1 : 0),
+      calculationBreakdown: calculationBreakdown,
     );
     
     moveHistory.add(entry);
@@ -601,6 +603,24 @@ class GameLogic {
     // Get the operation symbol for history
     final operation = operationSymbol ?? '';
 
+    // Generate detailed calculation breakdown for capture moves
+    CalculationBreakdown? calcBreakdown;
+    if (capturedChip != null && operationSymbol != null) {
+      bool isTakerDama = selectedChip?.isDama ?? false;
+      bool isTakenDama = capturedChip.isDama;
+      
+      calcBreakdown = ScoreCalculator.generateCalculationBreakdown(
+        movingChipTerms: chipTerms,
+        targetChipTerms: capturedChipTerms,
+        operationSymbol: operationSymbol,
+        targetX: x,
+        targetY: y,
+        isTakerDama: isTakerDama,
+        isTakenDama: isTakenDama,
+        captureCount: captureChainDepth,
+      );
+    }
+
     // Record this capture in history
     _recordMove(
       fromX: fromX,
@@ -617,6 +637,7 @@ class GameLogic {
           : 'Captured chip at ($captureMidX, $captureMidY)',
       isDamaPromotion: promoted,
       captureCount: captureChainDepth,
+      calculationBreakdown: calcBreakdown,
     );
 
     _updateScore(moveScore);

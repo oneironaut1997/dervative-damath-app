@@ -9,6 +9,7 @@ enum GameSound {
   timeout,
   music,
   timer,
+  move,
 }
 
 /// Service class for playing game sound effects.
@@ -31,6 +32,7 @@ class SoundService {
     GameSound.timeout: 'timeout.mp3',
     GameSound.music: 'music.mp3',
     GameSound.timer: 'timer.mp3',
+    GameSound.move: 'move.mp3',
   };
 
   // Separate audio player for background music (to allow looping)
@@ -92,6 +94,11 @@ class SoundService {
   /// Play timer warning sound (when timer is <= 10 seconds)
   Future<void> playTimerWarning() async {
     await play(GameSound.timer);
+  }
+
+  /// Play move sound (when chip moves without capturing)
+  Future<void> playMove() async {
+    await play(GameSound.move);
   }
 
   /// Start background music (loops continuously)

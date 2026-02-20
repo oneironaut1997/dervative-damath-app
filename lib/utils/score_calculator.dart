@@ -1,4 +1,5 @@
 import 'package:derivative_damath/utils/derivative_rules.dart';
+import 'package:derivative_damath/models/move_history_model.dart';
 
 /// Result of a move in the Derivative Damath game.
 class MoveResult {
@@ -120,6 +121,270 @@ class ScoreCalculator {
     // Since we don't have the Dama status here, we'll handle that in game_logic
 
     return score;
+  }
+
+  /// Generates a detailed step-by-step breakdown of the derivative calculation.
+  /// 
+  /// This method provides educational explanations for each step of the
+  /// derivative computation process, helping players understand how scoring works.
+  ///
+  /// [movingChipTerms] - The polynomial terms of the moving chip
+  /// [targetChipTerms] - The polynomial terms of the captured chip (for captures)
+  /// [operationSymbol] - The operation at the landing position (+, −, ×, ÷)
+  /// [targetX] - X coordinate of landing position
+  /// [targetY] - Y coordinate of landing position
+  /// [isTakerDama] - Whether the moving chip is a Dama
+  /// [isTakenDama] - Whether the captured chip is a Dama
+  /// [captureCount] - Number of chips captured (for chain bonus)
+  ///
+  /// Returns a [CalculationBreakdown] with detailed explanations for each step
+  static CalculationBreakdown? generateCalculationBreakdown({
+    required Map<int, int> movingChipTerms,
+    Map<int, int>? targetChipTerms,
+    required String operationSymbol,
+    required int targetX,
+    required int targetY,
+    bool isTakerDama = false,
+    bool isTakenDama = false,
+    int captureCount = 1,
+  }) {
+    // Only generate breakdown for captures
+    if (targetChipTerms == null || targetChipTerms.isEmpty) {
+      return null;
+    }
+
+    // Format the input terms
+    final movingFormatted = _formatTerms(movingChipTerms);
+    final targetFormatted = _formatTerms(targetChipTerms);
+
+    // Step 1: Combine the chips using the operation
+    final combined = _applyOperation(movingChipTerms, targetChipTerms, operationSymbol);
+    if (combined.isEmpty) return null;
+    final combinedFormatted = _formatTerms(combined);
+
+    // Step 2: Take the derivative
+    final derivative = DerivativeRules.powerRule(combined);
+    final derivativeFormatted = _formatDerivative(derivative);
+    final hasXVariable = derivative.keys.any((exp) => exp > 0);
+
+    // Step 3: Evaluate at x = |x - y|
+    final xValue = (targetX - targetY).abs();
+    double resultBeforeMultiplier;
+
+    if (!hasXVariable) {
+      // Derivative is a constant
+      resultBeforeMultiplier = derivative[0]?.toDouble() ?? 0;
+    } else {
+      // Evaluate at x = xValue
+      final evaluatedValue = DerivativeRules.evaluatePolynomial(derivative, xValue);
+      resultBeforeMultiplier = evaluatedValue.toDouble();
+    }
+
+    // Step 4: Apply Dama multipliers
+    int dameMultiplier = 1;
+    String dameDescription = '';
+    if (isTakerDama && isTakenDama) {
+      dameMultiplier = 4;
+      dameDescription = 'Both chips are DAMA (4x multiplier)';
+    } else if (isTakerDama || isTakenDama) {
+      dameMultiplier = 2;
+      dameDescription = 'One chip is DAMA (2x multiplier)';
+    }
+
+    // Apply multiplier
+    final multipliedResult = resultBeforeMultiplier * dameMultiplier;
+
+    // Step 5: Chain bonus
+    final chainBonus = (captureCount > 1) ? (captureCount - 1) * 1 : 0;
+    final finalScore = multipliedResult + chainBonus;
+
+    // Build the detailed steps
+    final steps = <CalculationStep>[];
+
+    // Step 1: Combine chips
+    final operationName = _getOperationName(operationSymbol);
+    steps.add(CalculationStep(
+      stepNumber: 1,
+      title: 'Combine Chips',
+      description: 'Apply $operationName operation to combine the polynomials',
+      expression: '$movingFormatted $operationSymbol $targetFormatted = $combinedFormatted',
+      result: combinedFormatted,
+      iconName: 'combine',
+    ));
+
+    // Step 2: Take derivative
+    steps.add(CalculationStep(
+      stepNumber: 2,
+      title: 'Take Derivative',
+      description: 'Apply power rule: d/dx(xⁿ) = n×xⁿ⁻¹',
+      expression: 'd/dx($combinedFormatted) = $derivativeFormatted',
+      result: derivativeFormatted,
+      iconName: 'derivative',
+    ));
+
+    // Step 3: Evaluate
+    if (hasXVariable) {
+      steps.add(CalculationStep(
+        stepNumber: 3,
+        title: 'Evaluate',
+        description: 'Substitute x = |$targetX - $targetY| = $xValue into the derivative',
+        expression: derivativeFormatted,
+        result: resultBeforeMultiplier.toStringAsFixed(1),
+        iconName: 'calculate',
+      ));
+    } else {
+      steps.add(CalculationStep(
+        stepNumber: 3,
+        title: 'Constant Result',
+        description: 'Derivative is constant (no x variable), use coefficient directly',
+        expression: derivativeFormatted,
+        result: resultBeforeMultiplier.toStringAsFixed(1),
+        iconName: 'calculate',
+      ));
+    }
+
+    // Step 4: Dama multiplier
+    if (dameMultiplier > 1) {
+      steps.add(CalculationStep(
+        stepNumber: steps.length + 1,
+        title: 'Apply Dama Multiplier',
+        description: dameDescription,
+        expression: '${resultBeforeMultiplier.toStringAsFixed(1)} × $dameMultiplier',
+        result: multipliedResult.toStringAsFixed(1),
+        iconName: 'star',
+      ));
+    }
+
+    // Step 5: Chain bonus
+    if (chainBonus > 0) {
+      steps.add(CalculationStep(
+        stepNumber: steps.length + 1,
+        title: 'Chain Capture Bonus',
+        description: '+$chainBonus point${chainBonus > 1 ? 's' : ''} for capturing $captureCount chips',
+        expression: '${multipliedResult.toStringAsFixed(1)} + $chainBonus',
+        result: finalScore.toStringAsFixed(1),
+        iconName: 'bolt',
+      ));
+    }
+
+    // Get operation symbol for display
+    final opSymbol = _getOperationSymbol(operationSymbol);
+
+    return CalculationBreakdown(
+      movingChipTerms: movingFormatted,
+      targetChipTerms: targetFormatted,
+      operation: opSymbol,
+      combinedTerms: combinedFormatted,
+      derivativeFormula: derivativeFormatted,
+      evaluationPoint: xValue,
+      resultBeforeMultiplier: resultBeforeMultiplier,
+      dameMultiplier: dameMultiplier,
+      chainBonus: chainBonus,
+      finalScore: finalScore,
+      isConstantDerivative: !hasXVariable,
+      steps: steps,
+    );
+  }
+
+  /// Formats polynomial terms into a readable string.
+  /// Example: {2: 1, 1: 3} → "x² + 3x"
+  static String _formatTerms(Map<int, int> terms) {
+    if (terms.isEmpty) return '0';
+
+    // Sort by exponent in descending order
+    final sortedKeys = terms.keys.toList()..sort((a, b) => b.compareTo(a));
+    final parts = <String>[];
+
+    for (int i = 0; i < sortedKeys.length; i++) {
+      final exp = sortedKeys[i];
+      final coeff = terms[exp]!;
+
+      if (coeff == 0) continue;
+
+      String termStr;
+      if (exp == 0) {
+        // Constant term
+        termStr = coeff.abs().toString();
+      } else if (exp == 1) {
+        // Linear term
+        if (coeff.abs() == 1) {
+          termStr = 'x';
+        } else {
+          termStr = '${coeff.abs()}x';
+        }
+      } else {
+        // Higher degree terms
+        if (coeff.abs() == 1) {
+          termStr = 'x${_toSuperscript(exp)}';
+        } else {
+          termStr = '${coeff.abs()}x${_toSuperscript(exp)}';
+        }
+      }
+
+      // Add sign
+      if (i == 0) {
+        // First term - no sign for positive
+        parts.add(coeff < 0 ? '−$termStr' : termStr);
+      } else {
+        // Subsequent terms
+        parts.add(coeff < 0 ? '− $termStr' : '+ $termStr');
+      }
+    }
+
+    if (parts.isEmpty) return '0';
+    return parts.join(' ');
+  }
+
+  /// Formats derivative result for display.
+  static String _formatDerivative(Map<int, int> derivative) {
+    if (derivative.isEmpty) return '0';
+    return _formatTerms(derivative);
+  }
+
+  /// Converts a number to superscript unicode characters.
+  static String _toSuperscript(int number) {
+    const superscripts = {
+      0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴',
+      5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹',
+    };
+    return number.toString().split('').map((c) => superscripts[int.parse(c)] ?? c).join('');
+  }
+
+  /// Gets the display name for an operation symbol.
+  static String _getOperationName(String symbol) {
+    switch (symbol) {
+      case '+':
+      case '−':
+      case '-':
+        return 'Addition/Subtraction';
+      case '×':
+      case 'x':
+      case '*':
+        return 'Multiplication';
+      case '÷':
+      case '/':
+        return 'Division';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  /// Gets the standardized operation symbol for display.
+  static String _getOperationSymbol(String symbol) {
+    switch (symbol) {
+      case '−':
+      case '-':
+        return '−';
+      case '×':
+      case 'x':
+      case '*':
+        return '×';
+      case '÷':
+      case '/':
+        return '÷';
+      default:
+        return symbol;
+    }
   }
 
   /// Applies a mathematical operation between two polynomials.
