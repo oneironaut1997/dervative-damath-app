@@ -401,15 +401,23 @@ class GameLogic {
     return midChip != null && isOpponent(selectedChip!, midChip) && !isOccupied(x, y);
   }
 
-  /// Check if Dama can capture (in any direction)
+  /// Check if Dama can capture (in any direction, at any distance 2-7)
   bool _canCaptureDama(int x, int y, int dx, int dy) {
     // Check bounds
     if (x < 0 || x > 7 || y < 0 || y > 7) return false;
-    if (dx.abs() != 2 || dy.abs() != 2) return false;
+    
+    // Dama can capture at distances 2-7 (long-distance capture)
+    // Must be at least 2 squares away
+    if (dx.abs() < 2 || dy.abs() < 2) return false;
+    // Must be diagonal (square of movement)
+    if (dx.abs() != dy.abs()) return false;
     if (isOccupied(x, y)) return false;
 
-    final midX = (x + selectedChip!.x) ~/ 2;
-    final midY = (y + selectedChip!.y) ~/ 2;
+    // Calculate the captured chip position correctly for any distance
+    // The captured chip is at distance-1 from start, not at midpoint
+    final dist = dx.abs();
+    final midX = selectedChip!.x + dx.sign * (dist - 1);
+    final midY = selectedChip!.y + dy.sign * (dist - 1);
     final midChip = chipAt(midX, midY);
 
     if (midChip == null || !isOpponent(selectedChip!, midChip)) return false;
@@ -426,11 +434,16 @@ class GameLogic {
     int x = fromX + dx;
     int y = fromY + dy;
 
+    // Calculate the captured chip position (distance - 1 from start)
+    final dist = (toX - fromX).abs();
+    final capturedX = fromX + dx * (dist - 1);
+    final capturedY = fromY + dy * (dist - 1);
+
     // Stop before the target (which is the landing spot after capture)
     while (x != toX || y != toY) {
       final chip = chipAt(x, y);
-      // Allow the middle chip (the one being captured)
-      if (chip != null && (x != (fromX + toX) ~/ 2 || y != (fromY + toY) ~/ 2)) {
+      // Allow the captured chip position, block everything else
+      if (chip != null && (x != capturedX || y != capturedY)) {
         return false;
       }
       x += dx;
@@ -509,10 +522,18 @@ class GameLogic {
     
     int captureMidX, captureMidY;
 
+    // Calculate distance for long-distance capture support
+    final dx = x - selectedChip!.x;
+    final dy = y - selectedChip!.y;
+    final dist = dx.abs(); // Distance in squares
+
     if (selectedChip!.isDama) {
-      captureMidX = (x + selectedChip!.x) ~/ 2;
-      captureMidY = (y + selectedChip!.y) ~/ 2;
+      // For long-distance captures, the captured chip is at distance-1
+      // Not at midpoint (which only works for distance 2)
+      captureMidX = selectedChip!.x + dx.sign * (dist - 1);
+      captureMidY = selectedChip!.y + dy.sign * (dist - 1);
     } else {
+      // Regular chip: always distance 2
       captureMidX = (x + selectedChip!.x) ~/ 2;
       captureMidY = (y + selectedChip!.y) ~/ 2;
     }
@@ -658,16 +679,20 @@ class GameLogic {
   bool _hasAnotherCapture() {
     if (selectedChip == null) return false;
 
-    // Dama can capture in all diagonal directions
+    // Dama can capture in all diagonal directions at distances 2-7
     if (selectedChip!.isDama) {
       final directions = [
-        [-2, -2], [2, -2], [-2, 2], [2, 2]
+        [-1, -1], [1, -1], [-1, 1], [1, 1]
       ];
+      
       for (final dir in directions) {
-        final targetX = selectedChip!.x + dir[0];
-        final targetY = selectedChip!.y + dir[1];
-        if (_canCapture(targetX, targetY, currentPlayer == 1 ? -1 : 1)) {
-          return true;
+        // Check all distances from 2 to 7
+        for (int dist = 2; dist <= 7; dist++) {
+          final targetX = selectedChip!.x + dir[0] * dist;
+          final targetY = selectedChip!.y + dir[1] * dist;
+          if (_canCapture(targetX, targetY, currentPlayer == 1 ? -1 : 1)) {
+            return true;
+          }
         }
       }
       return false;
@@ -796,10 +821,13 @@ class GameLogic {
 
         // Check if occupied
         if (isOccupied(targetX, targetY)) {
-          // For Dama, can capture if opponent is there and landing spot is empty
+          // For Dama, can capture at any distance >= 2
+          // The captured chip is at step-1, landing is at step+1
           if (chip.isDama && step > 1) {
+            // Check for opponent chip at step-1 position
             final midChip = chipAt(chip.x + dir[0] * (step - 1), chip.y + dir[1] * (step - 1));
             if (midChip != null && isOpponent(chip, midChip)) {
+              // Landing spot should be at step+1
               final landingX = chip.x + dir[0] * (step + 1);
               final landingY = chip.y + dir[1] * (step + 1);
               if (landingX >= 0 && landingX <= 7 && landingY >= 0 && landingY <= 7 && !isOccupied(landingX, landingY)) {
@@ -910,31 +938,38 @@ class GameLogic {
   List<CaptureMove> getAvailableCaptures(ChipModel chip) {
     final captures = <CaptureMove>[];
 
-    // Dama captures in all diagonal directions
+    // Dama captures in all diagonal directions, at distances 2-7 (long-distance)
     if (chip.isDama) {
       final directions = [
-        [-2, -2], [2, -2], [-2, 2], [2, 2]
+        [-1, -1], [1, -1], [-1, 1], [1, 1]
       ];
+      
       for (final dir in directions) {
-        final targetX = chip.x + dir[0];
-        final targetY = chip.y + dir[1];
+        // Check all distances from 2 to 7
+        for (int dist = 2; dist <= 7; dist++) {
+          final targetX = chip.x + dir[0] * dist;
+          final targetY = chip.y + dir[1] * dist;
 
-        if (targetX < 0 || targetX > 7 || targetY < 0 || targetY > 7) continue;
+          if (targetX < 0 || targetX > 7 || targetY < 0 || targetY > 7) continue;
 
-        final midX = (chip.x + targetX) ~/ 2;
-        final midY = (chip.y + targetY) ~/ 2;
+          // The chip being captured is at distance (dist - 1)
+          final midX = chip.x + dir[0] * (dist - 1);
+          final midY = chip.y + dir[1] * (dist - 1);
 
-        final midChip = chipAt(midX, midY);
-        if (midChip != null && isOpponent(chip, midChip) && !isOccupied(targetX, targetY)) {
-          captures.add(CaptureMove(
-            fromX: chip.x,
-            fromY: chip.y,
-            toX: targetX,
-            toY: targetY,
-            midX: midX,
-            midY: midY,
-            capturedChip: midChip,
-          ));
+          final midChip = chipAt(midX, midY);
+          
+          // Check: there's an opponent at mid position, landing spot is empty
+          if (midChip != null && isOpponent(chip, midChip) && !isOccupied(targetX, targetY)) {
+            captures.add(CaptureMove(
+              fromX: chip.x,
+              fromY: chip.y,
+              toX: targetX,
+              toY: targetY,
+              midX: midX,
+              midY: midY,
+              capturedChip: midChip,
+            ));
+          }
         }
       }
       return captures;
