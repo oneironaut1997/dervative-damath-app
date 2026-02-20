@@ -70,7 +70,8 @@ class _GameBoardState extends State<GameBoard> {
     // Initialize AI if PvC mode
     if (widget.mode == 'PvC') {
       aiOpponent = AIOpponent(
-        difficulty: AIDifficulty.medium, // Default to medium
+        // difficulty: AIDifficulty.medium, // Default to medium
+        difficulty: AIDifficulty.hard, // Default to medium
         gameLogic: gameLogic,
       );
     }

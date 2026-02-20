@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 /// A screen that explains how to play Derivative Damath.
 /// Contains game objective, movement rules, capture rules,
-/// derivative computation rules, scoring system, and example scenarios.
+/// must capture rule, timer system, derivative computation rules,
+/// scoring system, and example scenarios.
 class HowToPlayScreen extends StatelessWidget {
   const HowToPlayScreen({super.key});
 
@@ -56,6 +57,24 @@ class HowToPlayScreen extends StatelessWidget {
                           icon: Icons.gps_fixed,
                           color: Color(0xFFE94B4B),
                           content: _CaptureContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Must Capture Rule
+                        _SectionCard(
+                          title: '🔒 Must Capture Rule',
+                          icon: Icons.lock,
+                          color: Color(0xFFFF6B35),
+                          content: _MustCaptureContent(),
+                        ),
+                        SizedBox(height: 14),
+
+                        // Timer System
+                        _SectionCard(
+                          title: '⏱️ Timer System',
+                          icon: Icons.timer,
+                          color: Color(0xFF00BFA5),
+                          content: _TimerContent(),
                         ),
                         SizedBox(height: 14),
 
@@ -365,7 +384,7 @@ class _ObjectiveContent extends StatelessWidget {
         const SizedBox(height: 12),
         const _BulletPoint(text: "Capture opponent's chips by landing on their tile"),
         const _BulletPoint(text: 'Compute derivatives of your polynomial chip'),
-        const _BulletPoint(text: 'Compare your derivative result with the operation tile'),
+        const _BulletPoint(text: 'Apply the operation on the tile you land on'),
         const _BulletPoint(text: 'Score points based on correct computation'),
         const _BulletPoint(text: 'Win by capturing all opponent chips or having the highest score'),
       ],
@@ -416,6 +435,7 @@ class _CaptureContent extends StatelessWidget {
         const _BulletPoint(text: 'Land on the empty tile directly behind the opponent'),
         const _BulletPoint(text: 'The captured chip is removed from the board'),
         const _BulletPoint(text: 'Chain captures are allowed (capture multiple in one turn)'),
+        const _BulletPoint(text: 'Regular chips can capture BOTH forward AND backward'),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(14),
@@ -439,6 +459,114 @@ class _CaptureContent extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Example: Your chip at (2,2) can capture opponent at (3,3) by landing at (4,4)',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MustCaptureContent extends StatelessWidget {
+  const _MustCaptureContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'The "Must Capture" rule is enforced in Derivative Damath:',
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        const _BulletPoint(text: 'If any of your chips can capture, you MUST capture'),
+        const _BulletPoint(text: 'You cannot make regular moves when capture is available'),
+        const _BulletPoint(text: 'Only chips that can capture are selectable'),
+        const _BulletPoint(text: 'Chain captures must be completed if possible'),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3E0),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFFE0B2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6B35).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.lock, color: Color(0xFFFF6B35), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Chips that can capture will glow green to indicate you must capture!',
+                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TimerContent extends StatelessWidget {
+  const _TimerContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Each player has a limited time to make their move:',
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        const _BulletPoint(text: '2 minutes (120 seconds) per turn'),
+        const _BulletPoint(text: 'Timer counts down during your turn'),
+        const _BulletPoint(text: 'Timer resets when turn switches to opponent'),
+        const SizedBox(height: 12),
+        const _SubHeader(text: 'Timeout Penalty:'),
+        const SizedBox(height: 8),
+        Text(
+          'If time runs out:\n• 10,000 points are deducted from your score\n• Turn automatically switches to opponent',
+          style: TextStyle(color: Colors.grey[700], height: 1.6, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0F7F6),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFB2DFDB)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00BFA5).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.timer, color: Color(0xFF00BFA5), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Tip: Make your moves quickly to avoid timeout penalties!',
                   style: TextStyle(color: Colors.grey[700], fontSize: 13),
                 ),
               ),
@@ -481,6 +609,16 @@ class _DerivativeContent extends StatelessWidget {
           formula: 'd/dx(cx) = c',
           example: 'd/dx(4x) = 4',
         ),
+        const SizedBox(height: 14),
+        const _SubHeader(text: 'Scoring Formula:'),
+        const SizedBox(height: 8),
+        Text(
+          '1. Combine taker chip with taken chip using operation (+, −, ×, ÷)\n'
+          '2. Take derivative of the resulting combination\n'
+          '3. Evaluate at x = |x_coord - y_coord| (1, 3, 5, or 7)\n'
+          '4. Apply Dama multipliers: 2x for one Dama, 4x for both',
+          style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 13),
+        ),
       ],
     );
   }
@@ -499,10 +637,10 @@ class _ScoringContent extends StatelessWidget {
           style: TextStyle(color: Colors.grey[700], height: 1.5, fontSize: 14),
         ),
         const SizedBox(height: 12),
-        const _ScoreItem(points: '+1', description: 'Base points for any valid move'),
-        const _ScoreItem(points: '+2', description: "Capturing an opponent's chip"),
-        const _ScoreItem(points: '+3', description: 'Moving a Dama (promoted chip)'),
-        const _ScoreItem(points: '+1', description: 'Each additional chain capture'),
+        const _ScoreItem(points: 'Variable', description: 'Based on operation + derivative evaluation'),
+        const _ScoreItem(points: '2x', description: 'Dama multiplier (if taker is Dama)'),
+        const _ScoreItem(points: '4x', description: 'Dama multiplier (if both chips are Dama)'),
+        const _ScoreItem(points: '+1', description: 'Each additional chain capture bonus'),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(14),
@@ -525,7 +663,7 @@ class _ScoringContent extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Bonus: +5 points for a perfect derivative computation!',
+                  'End Game: Remaining chips add their absolute coefficients to score (doubled if Dama)',
                   style: TextStyle(
                     color: Colors.grey[800],
                     fontWeight: FontWeight.w700,
@@ -551,40 +689,42 @@ class _ExampleContent extends StatelessWidget {
       children: [
         _ExampleScenario(
           number: 1,
-          title: 'Simple Move',
+          title: 'Simple Capture',
           description:
-              'You have a chip with "2x³" and move to a tile with "+" operation. '
-              'Your derivative is 6x². If you compute correctly, you earn +1 base point.',
+              'You capture opponent\'s "x²" chip and land on a "+" tile. '
+              'Derivative is evaluated at x = |x-y| to calculate score.',
           chip: '2x³',
           operation: '+',
-          derivative: '6x²',
-          points: '+1',
-        ),
-        const SizedBox(height: 14),
-        _ExampleScenario(
-          number: 2,
-          title: 'Capture Move',
-          description:
-              'You jump over an opponent\'s chip "x²" and land on a "-" tile. '
-              'You earn +2 for the capture plus derivative points!',
-          chip: 'x²',
-          operation: '-',
-          derivative: '2x',
-          points: '+2',
+          derivative: '6x²+x²',
+          points: 'Score',
           isCapture: true,
         ),
         const SizedBox(height: 14),
         _ExampleScenario(
-          number: 3,
+          number: 2,
           title: 'Chain Capture',
           description:
-              'With a Dama chip, you can make multiple captures in one turn. '
+              'With a capturing chip, you can make multiple captures in one turn. '
               'Each additional capture adds +1 bonus point!',
           chip: '4x²',
-          operation: '+/−',
+          operation: '+',
           derivative: '8x',
-          points: '+3+',
+          points: '+1',
+          isCapture: true,
           isDama: true,
+        ),
+        const SizedBox(height: 14),
+        _ExampleScenario(
+          number: 3,
+          title: 'Must Capture',
+          description:
+              'When capture is available (glowing chip), you MUST capture. '
+              'Regular moves are not allowed until all captures are made.',
+          chip: 'x³',
+          operation: '×',
+          derivative: '3x²',
+          points: '🔒',
+          isCapture: true,
         ),
       ],
     );
