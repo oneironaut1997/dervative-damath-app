@@ -352,7 +352,7 @@ class _BackgroundLayer extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('web/home-screen-bg.png'),
+          image: AssetImage('assets/images/home-screen-bg.png'),
           fit: BoxFit.cover,
         ),
       ),
@@ -469,7 +469,7 @@ class _TopIllustration extends StatelessWidget {
           const Align(
             alignment: Alignment.center,
             child: Image(
-              image: AssetImage('web/logo.png'),
+              image: AssetImage('assets/images/logo.png'),
               width: 150,
               height: 150,
             ),

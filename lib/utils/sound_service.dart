@@ -1,4 +1,4 @@
-import 'package:audioplayers/audioplayers.dart' show AudioPlayer, ReleaseMode, UrlSource;
+import 'package:audioplayers/audioplayers.dart' show AudioPlayer, ReleaseMode, AssetSource;
 
 /// Sound effect types available in the game.
 enum GameSound {
@@ -23,16 +23,16 @@ class SoundService {
   // Audio player for playing sounds
   AudioPlayer? _player;
 
-  // Sound file paths - just filenames since web/ is the asset folder
+  // Sound file paths - relative to assets/sounds/ folder
   static const Map<GameSound, String> _soundPaths = {
-    GameSound.click: 'click.mp3',
-    GameSound.captured: 'captured.mp3',
-    GameSound.dma: 'dama.mp3',
-    GameSound.gameover: 'gameover.mp3',
-    GameSound.timeout: 'timeout.mp3',
-    GameSound.music: 'music.mp3',
-    GameSound.timer: 'timer.mp3',
-    GameSound.move: 'move.mp3',
+    GameSound.click: 'sounds/click.mp3',
+    GameSound.captured: 'sounds/captured.mp3',
+    GameSound.dma: 'sounds/dama.mp3',
+    GameSound.gameover: 'sounds/gameover.mp3',
+    GameSound.timeout: 'sounds/timeout.mp3',
+    GameSound.music: 'sounds/music.mp3',
+    GameSound.timer: 'sounds/timer.mp3',
+    GameSound.move: 'sounds/move.mp3',
   };
 
   // Separate audio player for background music (to allow looping)
@@ -57,8 +57,8 @@ class SoundService {
     
     try {
       final filename = _soundPaths[sound]!;
-      // Use UrlSource for web assets - files in web/ are served from root
-      await _player!.setSource(UrlSource('/$filename'));
+      // Use AssetSource for bundled assets (works on all platforms including mobile)
+      await _player!.setSource(AssetSource(filename));
       await _player!.resume();
     } catch (e) {
       // Log error but don't crash
@@ -111,7 +111,7 @@ class SoundService {
     }
     
     try {
-      await _musicPlayer!.setSource(UrlSource('/music.mp3'));
+      await _musicPlayer!.setSource(AssetSource('sounds/music.mp3'));
       await _musicPlayer!.setVolume(0.4); // Set to 40% volume for background music
       await _musicPlayer!.resume();
       _isMusicPlaying = true;

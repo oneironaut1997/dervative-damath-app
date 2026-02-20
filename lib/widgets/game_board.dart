@@ -329,8 +329,18 @@ class _GameBoardState extends State<GameBoard> {
     // Save the current player BEFORE making the move
     final previousPlayer = currentPlayer;
     
+    // Check if a valid move was made by comparing move history
+    // The gameLogic.onTileTap will only make a move if it's valid
+    final previousMoveCount = gameLogic.history.length;
+    
     // Delegate to game logic
     gameLogic.onTileTap(x, y);
+    
+    // If move history increased, a valid move was made - set flag for sound
+    // This must be done BEFORE _refreshState() because it checks and resets this flag
+    if (gameLogic.history.length > previousMoveCount) {
+      _moveMade = true;
+    }
     
     // Update captured count
     final p1Chips = gameLogic.getChipCount(1);
@@ -338,7 +348,7 @@ class _GameBoardState extends State<GameBoard> {
     player1Captured = 12 - p1Chips;
     player2Captured = 12 - p2Chips;
     
-    // Refresh state from game logic - this updates mustContinueCapturing
+    // Refresh state from game logic - this plays the move sound if _moveMade is true
     _refreshState();
     
     // Restart timer after a valid move (only if turn switched and timer is enabled)
@@ -363,8 +373,8 @@ class _GameBoardState extends State<GameBoard> {
       isAIThinking = true;
     });
     
-    // 2 second delay before computer moves for better UX
-    await Future.delayed(const Duration(milliseconds: 2000));
+    // 1 second delay before computer moves for better UX
+    await Future.delayed(const Duration(milliseconds: 1000));
     
     if (isGameOver) return;
     
