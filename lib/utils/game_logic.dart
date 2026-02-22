@@ -296,7 +296,7 @@ class GameLogic {
     }
 
     // Try to make a move or capture
-    final direction = currentPlayer == 1 ? -1 : 1;
+    final direction = currentPlayer == 1 ? 1 : -1;
 
     // Check for capture first
     if (_canCapture(x, y, direction)) {
@@ -322,7 +322,7 @@ class GameLogic {
       selectedChip = currentChainChip;
     }
 
-    final direction = currentPlayer == 1 ? -1 : 1;
+    final direction = currentPlayer == 1 ? 1 : -1;
 
     // Try to make another capture
     if (_canCapture(x, y, direction)) {
@@ -758,7 +758,8 @@ class GameLogic {
     }
 
     // Regular chip: can capture forward AND backward
-    final forwardDir = currentPlayer == 1 ? -1 : 1;
+    // Player 1 at top moves DOWN (+1), Player 2 at bottom moves UP (-1)
+    final forwardDir = currentPlayer == 1 ? 1 : -1;
     final backwardDir = -forwardDir;
     
     // Check forward captures
@@ -819,15 +820,15 @@ class GameLogic {
   bool _checkAndPromoteDama(int x, int y) {
     if (selectedChip == null || selectedChip!.isDama) return false;
 
-    // Player 1 (blue) promotes at row 0 (top)
-    if (currentPlayer == 1 && y == 0) {
+    // Player 1 (blue) promotes at row 7 (bottom) - moved to bottom
+    if (currentPlayer == 1 && y == 7) {
       selectedChip!.isDama = true;
       _logger.info('Player 1 chip promoted to Dama at ($x, $y)');
       return true;
     }
 
-    // Player 2 (red) promotes at row 7 (bottom)
-    if (currentPlayer == 2 && y == 7) {
+    // Player 2 (red) promotes at row 0 (top) - moved to top
+    if (currentPlayer == 2 && y == 0) {
       selectedChip!.isDama = true;
       _logger.info('Player 2 chip promoted to Dama at ($x, $y)');
       return true;
@@ -838,7 +839,8 @@ class GameLogic {
 
   /// Check if a position is a promotion row for a player
   bool isPromotionRow(int y, int player) {
-    return (player == 1 && y == 0) || (player == 2 && y == 7);
+    // Player 1 promotes at row 7 (bottom), Player 2 at row 0 (top)
+    return (player == 1 && y == 7) || (player == 2 && y == 0);
   }
 
   // ==================== VALID MOVE GETTERS ====================
@@ -859,7 +861,8 @@ class GameLogic {
     } else {
       // Regular chip: diagonal only (forward only, but only diagonal directions)
       // Damath rules: chips move diagonally to capture/interact with operation tiles
-      final forwardDir = chip.owner == 1 ? -1 : 1;
+      // Player 1 at top moves DOWN (+1), Player 2 at bottom moves UP (-1)
+      final forwardDir = chip.owner == 1 ? 1 : -1;
       directions.addAll([
         [-1, forwardDir], [1, forwardDir], // Diagonals only - no straight moves
       ]);
@@ -1034,7 +1037,8 @@ class GameLogic {
     }
 
     // Regular chip: captures forward AND backward
-    final forwardDir = chip.owner == 1 ? -1 : 1;
+    // Player 1 at top moves DOWN (+1), Player 2 at bottom moves UP (-1)
+    final forwardDir = chip.owner == 1 ? 1 : -1;
     final backwardDir = -forwardDir;
     
     // Forward diagonal captures

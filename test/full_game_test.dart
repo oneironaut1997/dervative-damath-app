@@ -33,10 +33,10 @@ void main() {
       
       game.currentPlayer = 1;
       
-      // Get a chip that has valid moves (chips at y=5 have forward movement available)
+      // Get any chip that has valid moves
       final chips = game.getChipsForPlayer(1);
       final chip = chips.firstWhere(
-        (c) => c.y == 5, // Chips at y=5 can move forward to y=4
+        (c) => game.getValidMoves(c).isNotEmpty,
         orElse: () => chips.first,
       );
       final validMoves = game.getValidMoves(chip);
@@ -158,7 +158,7 @@ void main() {
           break;
         }
         
-        // Find a chip that has valid moves (prefer chips at y=5 for Player 1, y=2 for Player 2)
+        // Find a chip that has valid moves
         final availableChips = currentPlayerChips.where(
           (c) => game.getValidMoves(c).isNotEmpty,
         ).toList();
@@ -168,12 +168,8 @@ void main() {
           break;
         }
         
-        // Prefer chips that can move forward (y=5 for P1, y=2 for P2)
-        final preferredY = game.currentPlayer == 1 ? 5 : 2;
-        final chip = availableChips.firstWhere(
-          (c) => c.y == preferredY,
-          orElse: () => availableChips.first,
-        );
+        // Use any available chip
+        final chip = availableChips.first;
         final validMoves = game.getValidMoves(chip);
         
         if (validMoves.isEmpty) {
