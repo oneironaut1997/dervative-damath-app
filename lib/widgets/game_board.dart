@@ -370,8 +370,13 @@ class _GameBoardState extends State<GameBoard> {
     
     // Toggle board rotation in PvP mode when turn switches
     if (currentPlayer != previousPlayer && !mustContinueCapturing && widget.mode == 'PvP') {
-      setState(() {
-        _boardRotation = gameLogic.currentPlayer == 1 ? 0 : 180;
+      // Add 1 second delay before rotating the board
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          setState(() {
+            _boardRotation = gameLogic.currentPlayer == 1 ? 0 : 180;
+          });
+        }
       });
     }
     

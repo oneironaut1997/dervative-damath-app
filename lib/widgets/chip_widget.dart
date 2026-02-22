@@ -16,21 +16,18 @@ class ChipWidget extends StatelessWidget {
     final Color borderColor = isDama ? Colors.amber : Colors.black;
     final double borderWidth = isDama ? 3.0 : 2.0;
     
-    return Container(
-      width: chipSize,
-      height: chipSize,
-      decoration: BoxDecoration(
-        color: chip.owner == 1 ? Colors.blue : Colors.red,
-        shape: BoxShape.circle, // Make the chip circular
-        border: Border.all(color: borderColor, width: borderWidth),
-      ),
+    // Determine if this is player 2's chip (for upside-down label)
+    final bool isPlayer2 = chip.owner == 2;
+    
+    // Build the chip content (polynomial expression and optional crown)
+    Widget chipContent = Stack(
       alignment: Alignment.center,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // The polynomial expression
-          FittedBox(
-            fit: BoxFit.scaleDown, // Ensures text is scaled to fit the available space
+      children: [
+        // The polynomial expression
+        FittedBox(
+          fit: BoxFit.scaleDown, // Ensures text is scaled to fit the available space
+          child: RotatedBox(
+            quarterTurns: isPlayer2 ? 2 : 0, // Rotate 180 degrees for player 2
             child: RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
@@ -43,19 +40,31 @@ class ChipWidget extends StatelessWidget {
               ),
             ),
           ),
-          // Crown/Star icon for Dama chips (positioned at top-right)
-          if (isDama)
-            Positioned(
-              top: 2,
-              right: 2,
-              child: Icon(
-                Icons.star,
-                color: Colors.amber,
-                size: 14,
-              ),
+        ),
+        // Crown/Star icon for Dama chips (positioned at top-right)
+        if (isDama)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: Icon(
+              Icons.star,
+              color: Colors.amber,
+              size: 14,
             ),
-        ],
+          ),
+      ],
+    );
+    
+    return Container(
+      width: chipSize,
+      height: chipSize,
+      decoration: BoxDecoration(
+        color: chip.owner == 1 ? Colors.blue : Colors.red,
+        shape: BoxShape.circle, // Make the chip circular
+        border: Border.all(color: borderColor, width: borderWidth),
       ),
+      alignment: Alignment.center,
+      child: chipContent,
     );
   }
 
