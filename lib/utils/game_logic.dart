@@ -402,6 +402,7 @@ class GameLogic {
   }
 
   /// Check if Dama can capture (in any direction, at any distance 2-7)
+  /// With flexible landing: can capture any opponent chip along diagonal and land anywhere after it
   bool _canCaptureDama(int x, int y, int dx, int dy) {
     // Check bounds
     if (x < 0 || x > 7 || y < 0 || y > 7) return false;
@@ -413,18 +414,61 @@ class GameLogic {
     if (dx.abs() != dy.abs()) return false;
     if (isOccupied(x, y)) return false;
 
-    // Calculate the captured chip position correctly for any distance
-    // The captured chip is at distance-1 from start, not at midpoint
+    // Find ANY opponent chip along the diagonal path before the landing spot
+    // and verify the landing spot is beyond it
     final dist = dx.abs();
-    final midX = selectedChip!.x + dx.sign * (dist - 1);
-    final midY = selectedChip!.y + dy.sign * (dist - 1);
-    final midChip = chipAt(midX, midY);
+    final dxSign = dx.sign;
+    final dySign = dy.sign;
+    
+    // Scan backward from landing position to find an opponent chip
+    int? foundMidX;
+    int? foundMidY;
+    
+    for (int d = 1; d < dist; d++) {
+      final checkX = selectedChip!.x + dxSign * d;
+      final checkY = selectedChip!.y + dySign * d;
+      final checkChip = chipAt(checkX, checkY);
+      
+      if (checkChip != null && isOpponent(selectedChip!, checkChip)) {
+        // Found an opponent chip - this will be the captured chip
+        foundMidX = checkX;
+        foundMidY = checkY;
+        break;
+      }
+    }
 
-    if (midChip == null || !isOpponent(selectedChip!, midChip)) return false;
+    // Must find an opponent chip to capture
+    if (foundMidX == null || foundMidY == null) return false;
 
     // Check if path is clear (excluding the captured chip position)
     // Pass selectedChip to check if blocking chips are opponents or team chips
-    return _isPathClearForCapture(selectedChip!.x, selectedChip!.y, x, y, selectedChip!);
+    return _isPathClearForCaptureFlexible(selectedChip!.x, selectedChip!.y, x, y, selectedChip!, foundMidX, foundMidY);
+  }
+
+  /// Check if path is clear for flexible capture (specifying exact captured chip position)
+  bool _isPathClearForCaptureFlexible(int fromX, int fromY, int toX, int toY, ChipModel capturingChip, int capturedX, int capturedY) {
+    final dx = (toX - fromX).sign;
+    final dy = (toY - fromY).sign;
+
+    int x = fromX + dx;
+    int y = fromY + dy;
+
+    // Stop before the target (which is the landing spot after capture)
+    while (x != toX || y != toY) {
+      final chip = chipAt(x, y);
+      // Allow the captured chip position, block only OPPONENT chips
+      // Team chips can be jumped over (Dama can capture over own chips)
+      if (chip != null && (x != capturedX || y != capturedY)) {
+        // Only block if it's an opponent chip - team chips don't block the path
+        if (isOpponent(capturingChip, chip)) {
+          return false;
+        }
+      }
+      x += dx;
+      y += dy;
+    }
+
+    return true;
   }
 
   /// Check if path is clear for capture (allowing capture in middle)
@@ -534,10 +578,31 @@ class GameLogic {
     final dist = dx.abs(); // Distance in squares
 
     if (selectedChip!.isDama) {
-      // For long-distance captures, the captured chip is at distance-1
-      // Not at midpoint (which only works for distance 2)
-      captureMidX = selectedChip!.x + dx.sign * (dist - 1);
-      captureMidY = selectedChip!.y + dy.sign * (dist - 1);
+      // For Dama: find the opponent chip by scanning backward from landing position
+      final dxSign = dx.sign;
+      final dySign = dy.sign;
+      
+      // Scan backward from landing position to find the first opponent chip
+      captureMidX = -1;
+      captureMidY = -1;
+      
+      for (int d = 1; d < dist; d++) {
+        final checkX = selectedChip!.x + dxSign * d;
+        final checkY = selectedChip!.y + dySign * d;
+        final checkChip = chipAt(checkX, checkY);
+        
+        if (checkChip != null && isOpponent(selectedChip!, checkChip)) {
+          captureMidX = checkX;
+          captureMidY = checkY;
+          break;
+        }
+      }
+      
+      // Fallback to old behavior if no chip found (shouldn't happen with valid capture)
+      if (captureMidX == -1) {
+        captureMidX = selectedChip!.x + dx.sign * (dist - 1);
+        captureMidY = selectedChip!.y + dy.sign * (dist - 1);
+      }
     } else {
       // Regular chip: always distance 2
       captureMidX = (x + selectedChip!.x) ~/ 2;
@@ -686,22 +751,10 @@ class GameLogic {
     if (selectedChip == null) return false;
 
     // Dama can capture in all diagonal directions at distances 2-7
+    // With flexible landing: check all possible captures using getAvailableCaptures
     if (selectedChip!.isDama) {
-      final directions = [
-        [-1, -1], [1, -1], [-1, 1], [1, 1]
-      ];
-      
-      for (final dir in directions) {
-        // Check all distances from 2 to 7
-        for (int dist = 2; dist <= 7; dist++) {
-          final targetX = selectedChip!.x + dir[0] * dist;
-          final targetY = selectedChip!.y + dir[1] * dist;
-          if (_canCapture(targetX, targetY, currentPlayer == 1 ? -1 : 1)) {
-            return true;
-          }
-        }
-      }
-      return false;
+      final captures = getAvailableCaptures(selectedChip!);
+      return captures.isNotEmpty;
     }
 
     // Regular chip: can capture forward AND backward
@@ -827,24 +880,15 @@ class GameLogic {
 
         // Check if occupied
         if (isOccupied(targetX, targetY)) {
-          // For Dama, can capture at any distance >= 2
-          // The captured chip is at step-1, landing is at step+1
+          // For Dama, can capture ANY opponent chip along diagonal and land at any empty tile after it
           if (chip.isDama && step > 1) {
-            // Check for opponent chip at step-1 position
-            final midChip = chipAt(chip.x + dir[0] * (step - 1), chip.y + dir[1] * (step - 1));
-            if (midChip != null && isOpponent(chip, midChip)) {
-              // Landing spot should be at step+1
-              final landingX = chip.x + dir[0] * (step + 1);
-              final landingY = chip.y + dir[1] * (step + 1);
-              if (landingX >= 0 && landingX <= 7 && landingY >= 0 && landingY <= 7 && !isOccupied(landingX, landingY)) {
-                moves.add(Move(
-                  fromX: chip.x,
-                  fromY: chip.y,
-                  toX: landingX,
-                  toY: landingY,
-                  isCapture: true,
-                  capturedChipTerms: midChip.terms,
-                ));
+            // Check for ANY opponent chip along the path before this position
+            for (int capturedStep = 1; capturedStep < step; capturedStep++) {
+              final midChip = chipAt(chip.x + dir[0] * capturedStep, chip.y + dir[1] * capturedStep);
+              if (midChip != null && isOpponent(chip, midChip)) {
+                // Landing spot is at 'step' position (which is currently occupied, so check if path is clear beyond)
+                // Actually, the target is already occupied (that's why we broke), so we need to check further
+                // This logic is handled by getAvailableCaptures which is called separately
               }
             }
           }
@@ -941,40 +985,48 @@ class GameLogic {
   }
 
   /// Get all available capture moves for a chip
+  /// For Dama: allows capturing any opponent chip along diagonal and landing at any empty tile after it
   List<CaptureMove> getAvailableCaptures(ChipModel chip) {
     final captures = <CaptureMove>[];
 
     // Dama captures in all diagonal directions, at distances 2-7 (long-distance)
+    // With flexible landing: can capture any opponent chip and land at any subsequent empty tile
     if (chip.isDama) {
       final directions = [
         [-1, -1], [1, -1], [-1, 1], [1, 1]
       ];
       
       for (final dir in directions) {
-        // Check all distances from 2 to 7
-        for (int dist = 2; dist <= 7; dist++) {
-          final targetX = chip.x + dir[0] * dist;
-          final targetY = chip.y + dir[1] * dist;
+        // For each direction, scan all possible landing positions
+        for (int landingDist = 2; landingDist <= 7; landingDist++) {
+          final targetX = chip.x + dir[0] * landingDist;
+          final targetY = chip.y + dir[1] * landingDist;
 
           if (targetX < 0 || targetX > 7 || targetY < 0 || targetY > 7) continue;
+          if (isOccupied(targetX, targetY)) continue; // Landing spot must be empty
 
-          // The chip being captured is at distance (dist - 1)
-          final midX = chip.x + dir[0] * (dist - 1);
-          final midY = chip.y + dir[1] * (dist - 1);
+          // Scan backward from landing position to find opponent chips
+          for (int capturedDist = 1; capturedDist < landingDist; capturedDist++) {
+            final midX = chip.x + dir[0] * capturedDist;
+            final midY = chip.y + dir[1] * capturedDist;
 
-          final midChip = chipAt(midX, midY);
-          
-          // Check: there's an opponent at mid position, landing spot is empty
-          if (midChip != null && isOpponent(chip, midChip) && !isOccupied(targetX, targetY)) {
-            captures.add(CaptureMove(
-              fromX: chip.x,
-              fromY: chip.y,
-              toX: targetX,
-              toY: targetY,
-              midX: midX,
-              midY: midY,
-              capturedChip: midChip,
-            ));
+            final midChip = chipAt(midX, midY);
+            
+            // Check: there's an opponent at mid position
+            if (midChip != null && isOpponent(chip, midChip)) {
+              // Check if path is clear (excluding the captured chip position)
+              if (_isPathClearForCaptureFlexible(chip.x, chip.y, targetX, targetY, chip, midX, midY)) {
+                captures.add(CaptureMove(
+                  fromX: chip.x,
+                  fromY: chip.y,
+                  toX: targetX,
+                  toY: targetY,
+                  midX: midX,
+                  midY: midY,
+                  capturedChip: midChip,
+                ));
+              }
+            }
           }
         }
       }
