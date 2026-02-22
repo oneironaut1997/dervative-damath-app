@@ -423,11 +423,13 @@ class GameLogic {
     if (midChip == null || !isOpponent(selectedChip!, midChip)) return false;
 
     // Check if path is clear (excluding the captured chip position)
-    return _isPathClearForCapture(selectedChip!.x, selectedChip!.y, x, y);
+    // Pass selectedChip to check if blocking chips are opponents or team chips
+    return _isPathClearForCapture(selectedChip!.x, selectedChip!.y, x, y, selectedChip!);
   }
 
   /// Check if path is clear for capture (allowing capture in middle)
-  bool _isPathClearForCapture(int fromX, int fromY, int toX, int toY) {
+  /// [capturingChip] - The chip that is attempting the capture
+  bool _isPathClearForCapture(int fromX, int fromY, int toX, int toY, ChipModel capturingChip) {
     final dx = (toX - fromX).sign;
     final dy = (toY - fromY).sign;
 
@@ -442,9 +444,13 @@ class GameLogic {
     // Stop before the target (which is the landing spot after capture)
     while (x != toX || y != toY) {
       final chip = chipAt(x, y);
-      // Allow the captured chip position, block everything else
+      // Allow the captured chip position, block only OPPONENT chips
+      // Team chips can be jumped over (Dama can capture over own chips)
       if (chip != null && (x != capturedX || y != capturedY)) {
-        return false;
+        // Only block if it's an opponent chip - team chips don't block the path
+        if (isOpponent(capturingChip, chip)) {
+          return false;
+        }
       }
       x += dx;
       y += dy;
