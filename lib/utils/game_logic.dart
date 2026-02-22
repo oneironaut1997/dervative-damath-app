@@ -1541,6 +1541,42 @@ class GameLogic {
     return chips.where((chip) => chip.owner == player && chip.isDama).length;
   }
 
+  /// Setup custom board with specific chip positions for testing capture rules
+  /// [chipSetup] - List of chip configurations (x, y, isDama, owner, terms)
+  void setupCustomBoard(List<Map<String, dynamic>> chipSetup) {
+    chips.clear();
+    int idCounter = 0;
+    
+    for (final setup in chipSetup) {
+      final chip = ChipModel(
+        id: idCounter++,
+        x: setup['x'] as int,
+        y: setup['y'] as int,
+        owner: setup['owner'] as int,
+        isDama: setup['isDama'] as bool? ?? false,
+        terms: Map<int, int>.from(setup['terms'] as Map<int, int>? ?? {0: 1}),
+      );
+      chips.add(chip);
+    }
+    
+    // Reset game state
+    selectedChip = null;
+    currentPlayer = 1;
+    player1Score = 0;
+    player2Score = 0;
+    lastMoveResult = null;
+    lastErrorMessage = null;
+    mustContinueCapture = false;
+    currentChainChip = null;
+    captureChainDepth = 0;
+    gamePhase = GamePhase.playing;
+    winner = null;
+    positionHistory.clear();
+    clearHistory();
+    
+    _recordPosition();
+  }
+
   /// Execute a move from the AI opponent.
   /// This method handles selecting the chip and moving it to the destination.
   void executeMove(Move move) {

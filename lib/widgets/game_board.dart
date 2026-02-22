@@ -7,6 +7,7 @@ import '../utils/operations_layout.dart';
 import '../utils/game_logic.dart';
 import '../utils/ai_opponent.dart';
 import '../utils/sound_service.dart';
+import '../utils/capture_scenarios.dart';
 import '../widgets/move_history_modal.dart';
 import 'score_board.dart';
 import 'player_info_card.dart';
@@ -520,6 +521,111 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
+  /// Shows the capture scenarios test dialog
+  void _showCaptureScenariosDialog(BuildContext context) {
+    final scenariosByCategory = getScenariosByCategory();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Capture Rules Test'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Allowed scenarios
+                const Text(
+                  '✅ ALLOWED',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 16,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...scenariosByCategory['Allowed']!.map((scenario) => 
+                  _buildScenarioTile(context, scenario),
+                ),
+                const SizedBox(height: 16),
+                // Not allowed scenarios
+                const Text(
+                  '❌ NOT ALLOWED',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 16,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...scenariosByCategory['Not Allowed']!.map((scenario) => 
+                  _buildScenarioTile(context, scenario),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a list tile for a scenario
+  Widget _buildScenarioTile(BuildContext context, CaptureScenario scenario) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        title: Text(
+          scenario.name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: scenario.isAllowed ? Colors.green[700] : Colors.red[700],
+          ),
+        ),
+        subtitle: Text(scenario.description),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {
+          // Apply the scenario
+          Navigator.of(context).pop();
+          _applyScenario(scenario);
+        },
+      ),
+    );
+  }
+
+  /// Apply a capture scenario to the board
+  void _applyScenario(CaptureScenario scenario) {
+    // Setup custom board with the scenario chips
+    gameLogic.setupCustomBoard(scenario.chips);
+    
+    // Reset captured count
+    player1Captured = 0;
+    player2Captured = 0;
+    
+    // Refresh state
+    _refreshState();
+    
+    // Show a snackbar with the result
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          scenario.isAllowed 
+              ? '✅ Capture is ALLOWED in this position'
+              : '❌ Capture is NOT ALLOWED in this position',
+        ),
+        backgroundColor: scenario.isAllowed ? Colors.green : Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   /// Gets the number of chips remaining for a player
   int chipsRemainingForPlayer(int playerNumber) {
     return gameLogic.getChipCount(playerNumber);
@@ -592,6 +698,19 @@ class _GameBoardState extends State<GameBoard> {
                         tooltip: 'Move History',
                       ),
                       const SizedBox(width: 12),
+                      // // Capture Test Button (only for PvP)
+                      // if (widget.mode == 'PvP')
+                      //   IconButton(
+                      //     onPressed: () => _showCaptureScenariosDialog(context),
+                      //     icon: const Icon(Icons.science),
+                      //     style: IconButton.styleFrom(
+                      //       backgroundColor: Colors.purple[700],
+                      //       foregroundColor: Colors.white,
+                      //       padding: const EdgeInsets.all(8),
+                      //     ),
+                      //     tooltip: 'Capture Rules Test',
+                      //   ),
+                      if (widget.mode == 'PvP') const SizedBox(width: 12),
                       // Reset Button
                       IconButton(
                         onPressed: () => _showResetConfirmationDialog(),
