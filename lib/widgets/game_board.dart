@@ -41,6 +41,9 @@ class _GameBoardState extends State<GameBoard> {
   bool isCaptureAvailable = false; // Track if any capture is available (must capture rule)
   bool isAIThinking = false; // Track if AI is thinking
 
+  // Board rotation for PvP mode (0 = Player 1 perspective, 180 = Player 2 perspective)
+  double _boardRotation = 0;
+
   // Track previous counts for sound triggers
   int _previousPlayer1Chips = 12;
   int _previousPlayer2Chips = 12;
@@ -162,6 +165,14 @@ class _GameBoardState extends State<GameBoard> {
   /// Switch turn to opponent and start their timer
   void _switchTurnWithTimer() {
     gameLogic.currentPlayer = gameLogic.currentPlayer == 1 ? 2 : 1;
+    
+    // Toggle board rotation in PvP mode only
+    if (widget.mode == 'PvP') {
+      setState(() {
+        _boardRotation = gameLogic.currentPlayer == 1 ? 0 : 180;
+      });
+    }
+    
     _refreshState();
     
     // Start timer only if useTimer is enabled
@@ -355,6 +366,13 @@ class _GameBoardState extends State<GameBoard> {
     // Check if player changed (turn was switched)
     if (currentPlayer != previousPlayer && !mustContinueCapturing && widget.useTimer) {
       _startTimer();
+    }
+    
+    // Toggle board rotation in PvP mode when turn switches
+    if (currentPlayer != previousPlayer && !mustContinueCapturing && widget.mode == 'PvP') {
+      setState(() {
+        _boardRotation = gameLogic.currentPlayer == 1 ? 0 : 180;
+      });
     }
     
     // Trigger AI move if it's PvC mode and now AI's turn
@@ -586,134 +604,139 @@ class _GameBoardState extends State<GameBoard> {
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Board rows with y-axis labels (7 to 0 from top to bottom)
-              ...List.generate(8, (rowIndex) {
-                final y = 7 - rowIndex; // Reverse: 7 at top, 0 at bottom
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Y-axis label (left side)
-                    SizedBox(
-                      width: labelWidth,
-                      child: Text(
-                        '$y',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ),
-                    // Board tiles (x goes 0 to 7 left to right)
-                    ...List.generate(8, (x) {
-                      final isWhite = (x + y) % 2 == 0;
-                      final bgColor = isWhite
-                          ? const Color(0xFFF1E9D2)
-                          : const Color(0xFF6B4A3A);
-
-                      final chipHere = chipAt(x, y);
-                      final isSelected = selectedChip != null &&
-                          selectedChip!.x == x &&
-                          selectedChip!.y == y;
-                      final isChainChip = mustContinueCapturing && 
-                          gameLogic.currentChainChipModel != null &&
-                          gameLogic.currentChainChipModel!.x == x &&
-                          gameLogic.currentChainChipModel!.y == y;
-
-                      final op = operations[y][x];
-
-                      return DragTarget<ChipModel>(
-                        onWillAcceptWithDetails: (details) {
-                          final chip = details.data;
-                          if (chip.owner == currentPlayer && !isOccupied(x, y)) {
-                            // Check if this is a valid move
-                            final validMoves = gameLogic.getValidMoves(chip);
-                            return validMoves.any((move) => move.toX == x && move.toY == y);
-                          }
-                          return false;
-                        },
-                        onAcceptWithDetails: (details) {
-                          _onChipDropped(details.data, x, y);
-                        },
-                        builder: (context, candidateData, rejectedData) {
-                          final isValidTarget = candidateData.isNotEmpty;
-                          return GestureDetector(
-                            onTap: () => onTileTap(x, y),
-                            child: Container(
-                              width: cellSize,
-                              height: cellSize,
-                              margin: const EdgeInsets.all(1),
-                              decoration: BoxDecoration(
-                                color: bgColor,
-                                border: isSelected
-                                    ? Border.all(color: Colors.yellowAccent, width: 3)
-                                    : isChainChip
-                                        ? Border.all(color: Colors.orange, width: 3)
-                                        : isValidTarget
-                                            ? Border.all(color: Colors.green, width: 3)
-                                            : null,
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  if (op.isNotEmpty)
-                                    Text(
-                                      op,
-                                      style: TextStyle(
-                                        fontSize: cellSize * 0.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: isWhite ? Colors.black87 : Colors.white,
-                                      ),
-                                    ),
-                                  if (chipHere != null)
-                                    _buildChipWithGlow(chipHere, cellSize),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    }),
-                  ],
-                );
-              }),
-              // X-axis labels (0-7) at the bottom
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(width: labelWidth), // Spacer for y-axis labels
-                  ...List.generate(8, (x) {
-                    return SizedBox(
-                      width: cellSize + 2, // Match cell width + margin
-                      child: Text(
-                        '$x',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    );
-                  }),
+          AnimatedRotation(
+            turns: _boardRotation / 360,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
                 ],
               ),
-            ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Board rows with y-axis labels (7 to 0 from top to bottom)
+                  ...List.generate(8, (rowIndex) {
+                    final y = 7 - rowIndex; // Reverse: 7 at top, 0 at bottom
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Y-axis label (left side)
+                        SizedBox(
+                          width: labelWidth,
+                          child: Text(
+                            '$y',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ),
+                        // Board tiles (x goes 0 to 7 left to right)
+                        ...List.generate(8, (x) {
+                          final isWhite = (x + y) % 2 == 0;
+                          final bgColor = isWhite
+                              ? const Color(0xFFF1E9D2)
+                              : const Color(0xFF6B4A3A);
+
+                          final chipHere = chipAt(x, y);
+                          final isSelected = selectedChip != null &&
+                              selectedChip!.x == x &&
+                              selectedChip!.y == y;
+                          final isChainChip = mustContinueCapturing && 
+                              gameLogic.currentChainChipModel != null &&
+                              gameLogic.currentChainChipModel!.x == x &&
+                              gameLogic.currentChainChipModel!.y == y;
+
+                          final op = operations[y][x];
+
+                          return DragTarget<ChipModel>(
+                            onWillAcceptWithDetails: (details) {
+                              final chip = details.data;
+                              if (chip.owner == currentPlayer && !isOccupied(x, y)) {
+                                // Check if this is a valid move
+                                final validMoves = gameLogic.getValidMoves(chip);
+                                return validMoves.any((move) => move.toX == x && move.toY == y);
+                              }
+                              return false;
+                            },
+                            onAcceptWithDetails: (details) {
+                              _onChipDropped(details.data, x, y);
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              final isValidTarget = candidateData.isNotEmpty;
+                              return GestureDetector(
+                                onTap: () => onTileTap(x, y),
+                                child: Container(
+                                  width: cellSize,
+                                  height: cellSize,
+                                  margin: const EdgeInsets.all(1),
+                                  decoration: BoxDecoration(
+                                    color: bgColor,
+                                    border: isSelected
+                                        ? Border.all(color: Colors.yellowAccent, width: 3)
+                                        : isChainChip
+                                            ? Border.all(color: Colors.orange, width: 3)
+                                            : isValidTarget
+                                                ? Border.all(color: Colors.green, width: 3)
+                                                : null,
+                                  ),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      if (op.isNotEmpty)
+                                        Text(
+                                          op,
+                                          style: TextStyle(
+                                            fontSize: cellSize * 0.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: isWhite ? Colors.black87 : Colors.white,
+                                          ),
+                                        ),
+                                      if (chipHere != null)
+                                        _buildChipWithGlow(chipHere, cellSize),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }),
+                      ],
+                    );
+                  }),
+                  // X-axis labels (0-7) at the bottom
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: labelWidth), // Spacer for y-axis labels
+                      ...List.generate(8, (x) {
+                        return SizedBox(
+                          width: cellSize + 2, // Match cell width + margin
+                          child: Text(
+                            '$x',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
       ],
     ),
     );
