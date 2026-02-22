@@ -200,7 +200,7 @@ class MoveHistoryModal extends StatelessWidget {
                     style: TextStyle(
                       color: playerColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 10,
                     ),
                   ),
                 ),
@@ -211,7 +211,7 @@ class MoveHistoryModal extends StatelessWidget {
                   style: TextStyle(
                     color: playerColor,
                     fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                    fontSize: 12,
                   ),
                 ),
                 const Spacer(),
@@ -231,7 +231,7 @@ class MoveHistoryModal extends StatelessWidget {
                         entry.moveTypeDescription,
                         style: TextStyle(
                           color: moveTypeColor,
-                          fontSize: 11,
+                          fontSize: 9,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -251,7 +251,7 @@ class MoveHistoryModal extends StatelessWidget {
                   entry.moveString,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                     fontFamily: 'monospace',
                   ),
@@ -262,7 +262,7 @@ class MoveHistoryModal extends StatelessWidget {
                   entry.algebraicNotation,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 12,
+                    fontSize: 10,
                     fontFamily: 'monospace',
                   ),
                 ),
@@ -280,7 +280,7 @@ class MoveHistoryModal extends StatelessWidget {
                     'Chip: ${entry.chipTerms}',
                     style: const TextStyle(
                       color: Colors.white70,
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                   if (entry.isDamaPromotion) ...[
@@ -316,7 +316,7 @@ class MoveHistoryModal extends StatelessWidget {
                     'Captured: ${entry.capturedChipTerms}',
                     style: const TextStyle(
                       color: Colors.redAccent,
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                 ],
@@ -340,7 +340,7 @@ class MoveHistoryModal extends StatelessWidget {
                         entry.operation,
                         style: const TextStyle(
                           color: Colors.purpleAccent,
-                          fontSize: 14,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -371,7 +371,7 @@ class MoveHistoryModal extends StatelessWidget {
                   entry.calculationDetails,
                   style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 11,
+                    fontSize: 9,
                     fontFamily: 'monospace',
                   ),
                 ),
@@ -400,7 +400,7 @@ class MoveHistoryModal extends StatelessWidget {
                       entry.pointsString,
                       style: const TextStyle(
                         color: Colors.greenAccent,
-                        fontSize: 14,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -474,7 +474,7 @@ class MoveHistoryModal extends StatelessWidget {
                   'Calculation Breakdown',
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -483,7 +483,7 @@ class MoveHistoryModal extends StatelessWidget {
                   'Score: ${breakdown.finalScore.toStringAsFixed(1)}',
                   style: const TextStyle(
                     color: Colors.amber,
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -567,7 +567,7 @@ class MoveHistoryModal extends StatelessWidget {
                   step.title,
                   style: TextStyle(
                     color: stepColor,
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -580,7 +580,7 @@ class MoveHistoryModal extends StatelessWidget {
             step.description,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 10,
+              fontSize: 8,
             ),
           ),
           const SizedBox(height: 4),
@@ -596,7 +596,7 @@ class MoveHistoryModal extends StatelessWidget {
               step.expression,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 10,
                 fontFamily: 'monospace',
               ),
             ),
@@ -611,7 +611,7 @@ class MoveHistoryModal extends StatelessWidget {
                   '= ${step.result}',
                   style: TextStyle(
                     color: stepColor,
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'monospace',
                   ),
