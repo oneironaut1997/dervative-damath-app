@@ -16,11 +16,13 @@ import 'draggable_piece.dart';
 class GameBoard extends StatefulWidget {
   final String mode; // "PvP" or "PvC"
   final bool useTimer; // Whether to enable turn timer
+  final String? difficulty; // "easy", "medium", "hard" for PvC
   
   const GameBoard({
     super.key,
     required this.mode,
     this.useTimer = true,
+    this.difficulty,
   });
 
   @override
@@ -74,9 +76,23 @@ class _GameBoardState extends State<GameBoard> {
     
     // Initialize AI if PvC mode
     if (widget.mode == 'PvC') {
+      // Parse difficulty from widget parameter
+      AIDifficulty aiDifficulty;
+      switch (widget.difficulty) {
+        case 'easy':
+          aiDifficulty = AIDifficulty.easy;
+          break;
+        case 'hard':
+          aiDifficulty = AIDifficulty.hard;
+          break;
+        case 'medium':
+        default:
+          aiDifficulty = AIDifficulty.medium;
+          break;
+      }
+      
       aiOpponent = AIOpponent(
-        difficulty: AIDifficulty.medium, // Default to medium
-        // difficulty: AIDifficulty.hard, // Default to hard
+        difficulty: aiDifficulty,
         gameLogic: gameLogic,
       );
     }
@@ -397,8 +413,9 @@ class _GameBoardState extends State<GameBoard> {
       isAIThinking = true;
     });
     
-    // 1 second delay before computer moves for better UX
-    await Future.delayed(const Duration(milliseconds: 1000));
+    // Longer delay for harder difficulty to make moves more visible
+    final delayMs = (widget.difficulty == 'hard') ? 1500 : 1000;
+    await Future.delayed(Duration(milliseconds: delayMs));
     
     if (isGameOver) return;
     

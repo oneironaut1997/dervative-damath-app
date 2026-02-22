@@ -6,6 +6,201 @@ import '../utils/sound_service.dart';
 import 'game_screen.dart';
 import 'how_to_play_screen.dart';
 
+/// Shows difficulty selection for PvC mode
+void _showDifficultyModal(BuildContext context, String mode) {
+  if (mode != 'PvC') {
+    // For PvP, skip difficulty selection
+    _showGameStartModal(context, mode, null);
+    return;
+  }
+  
+  SoundService().playClick();
+  
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext dialogContext) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header icon
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D5BFF).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.psychology_outlined,
+                  size: 36,
+                  color: Color(0xFF1D5BFF),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Title
+              const Text(
+                'Select Difficulty',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0D2045),
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Subtitle
+              const Text(
+                'Choose your opponent\'s skill level',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF6B778C),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Easy Button
+              _DifficultyButton(
+                icon: Icons.sentiment_satisfied_outlined,
+                title: 'Easy',
+                subtitle: 'For beginners',
+                color: const Color(0xFF17A85E),
+                onTap: () {
+                  SoundService().playClick();
+                  Navigator.of(dialogContext).pop();
+                  _showGameStartModal(context, mode, 'easy');
+                },
+              ),
+              const SizedBox(height: 12),
+              
+              // Medium Button
+              _DifficultyButton(
+                icon: Icons.sentiment_neutral_outlined,
+                title: 'Medium',
+                subtitle: 'For casual players',
+                color: const Color(0xFFFF9800),
+                onTap: () {
+                  SoundService().playClick();
+                  Navigator.of(dialogContext).pop();
+                  _showGameStartModal(context, mode, 'medium');
+                },
+              ),
+              const SizedBox(height: 12),
+              
+              // Hard Button
+              _DifficultyButton(
+                icon: Icons.sentiment_very_dissatisfied_outlined,
+                title: 'Hard',
+                subtitle: 'For experts',
+                color: const Color(0xFFE94B4B),
+                onTap: () {
+                  SoundService().playClick();
+                  Navigator.of(dialogContext).pop();
+                  _showGameStartModal(context, mode, 'hard');
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Cancel Button
+              TextButton(
+                onPressed: () {
+                  SoundService().playClick();
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6B778C),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// Difficulty button widget
+class _DifficultyButton extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+  
+  const _DifficultyButton({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+  
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B778C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -39,7 +234,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 /// Shows the game start modal with timer options
-void _showGameStartModal(BuildContext context, String mode) {
+void _showGameStartModal(BuildContext context, String mode, String? difficulty) {
   SoundService().playClick();
   
   showDialog(
@@ -84,7 +279,9 @@ void _showGameStartModal(BuildContext context, String mode) {
               
               // Subtitle
               Text(
-                mode == 'PvC' ? 'Player vs Computer' : 'Player vs Player',
+                mode == 'PvC' 
+                  ? '${_getDifficultyLabel(difficulty)} - Player vs Computer' 
+                  : 'Player vs Player',
                 style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF6B778C),
@@ -126,7 +323,11 @@ void _showGameStartModal(BuildContext context, String mode) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => GameScreen(mode: mode, useTimer: true),
+                        builder: (_) => GameScreen(
+                          mode: mode, 
+                          useTimer: true,
+                          difficulty: difficulty,
+                        ),
                       ),
                     );
                   },
@@ -167,7 +368,11 @@ void _showGameStartModal(BuildContext context, String mode) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => GameScreen(mode: mode, useTimer: false),
+                        builder: (_) => GameScreen(
+                          mode: mode, 
+                          useTimer: false,
+                          difficulty: difficulty,
+                        ),
                       ),
                     );
                   },
@@ -223,6 +428,20 @@ void _showGameStartModal(BuildContext context, String mode) {
   );
 }
 
+/// Get difficulty label for display
+String _getDifficultyLabel(String? difficulty) {
+  switch (difficulty) {
+    case 'easy':
+      return 'Easy';
+    case 'medium':
+      return 'Medium';
+    case 'hard':
+      return 'Hard';
+    default:
+      return 'PvC';
+  }
+}
+
 class _MainCard extends StatelessWidget {
   final double screenHeight;
   const _MainCard({required this.screenHeight});
@@ -270,7 +489,7 @@ class _MainCard extends StatelessWidget {
               iconColor: Colors.white,
             ),
             title: 'Player vs Computer',
-            onTap: () => _showGameStartModal(context, 'PvC'),
+            onTap: () => _showDifficultyModal(context, 'PvC'),
           ),
           const SizedBox(height: 14),
           _MenuButton(
@@ -282,7 +501,7 @@ class _MainCard extends StatelessWidget {
               iconColor: Color(0xFF1D5BFF),
             ),
             title: 'Player vs Player',
-            onTap: () => _showGameStartModal(context, 'PvP'),
+            onTap: () => _showDifficultyModal(context, 'PvP'),
           ),
           const SizedBox(height: 14),
           _MenuButton(
