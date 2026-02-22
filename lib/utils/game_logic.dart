@@ -446,6 +446,8 @@ class GameLogic {
   }
 
   /// Check if path is clear for flexible capture (specifying exact captured chip position)
+  /// Blocks if there is ANY chip (team or opponent) immediately after the captured chip.
+  /// There must be an empty space immediately after the captured chip to land beyond it.
   bool _isPathClearForCaptureFlexible(int fromX, int fromY, int toX, int toY, ChipModel capturingChip, int capturedX, int capturedY) {
     final dx = (toX - fromX).sign;
     final dy = (toY - fromY).sign;
@@ -453,16 +455,31 @@ class GameLogic {
     int x = fromX + dx;
     int y = fromY + dy;
 
+    // Calculate the position immediately after the captured chip
+    final capturedDist = (capturedX - fromX).abs();
+    final afterCapturedX = fromX + dx * (capturedDist + 1);
+    final afterCapturedY = fromY + dy * (capturedDist + 1);
+
     // Stop before the target (which is the landing spot after capture)
     while (x != toX || y != toY) {
       final chip = chipAt(x, y);
-      // Allow the captured chip position, block only OPPONENT chips
-      // Team chips can be jumped over (Dama can capture over own chips)
-      if (chip != null && (x != capturedX || y != capturedY)) {
-        // Only block if it's an opponent chip - team chips don't block the path
-        if (isOpponent(capturingChip, chip)) {
+      
+      // Check if we've reached/passed the captured chip position
+      if (chip != null) {
+        final distFromStart = (x - fromX).abs();
+        final distToCaptured = (capturedX - fromX).abs();
+        
+        // Block if chip is BEFORE the captured chip
+        if (distFromStart < distToCaptured) {
           return false;
         }
+        
+        // Block if chip is IMMEDIATELY after the captured chip (no empty space)
+        // This prevents captures like D - - O O - where there's no landing space
+        if (distFromStart == distToCaptured + 1) {
+          return false;
+        }
+        // Chips further away (2+ spaces after captured) are allowed
       }
       x += dx;
       y += dy;
@@ -473,6 +490,7 @@ class GameLogic {
 
   /// Check if path is clear for capture (allowing capture in middle)
   /// [capturingChip] - The chip that is attempting the capture
+  /// Blocks if there is ANY chip (team or opponent) immediately after the captured chip.
   bool _isPathClearForCapture(int fromX, int fromY, int toX, int toY, ChipModel capturingChip) {
     final dx = (toX - fromX).sign;
     final dy = (toY - fromY).sign;
@@ -488,11 +506,18 @@ class GameLogic {
     // Stop before the target (which is the landing spot after capture)
     while (x != toX || y != toY) {
       final chip = chipAt(x, y);
-      // Allow the captured chip position, block only OPPONENT chips
-      // Team chips can be jumped over (Dama can capture over own chips)
-      if (chip != null && (x != capturedX || y != capturedY)) {
-        // Only block if it's an opponent chip - team chips don't block the path
-        if (isOpponent(capturingChip, chip)) {
+      
+      if (chip != null) {
+        final distFromStart = (x - fromX).abs();
+        final distToCaptured = (capturedX - fromX).abs();
+        
+        // Block if chip is BEFORE the captured chip
+        if (distFromStart < distToCaptured) {
+          return false;
+        }
+        
+        // Block if chip is IMMEDIATELY after the captured chip (no empty space)
+        if (distFromStart == distToCaptured + 1) {
           return false;
         }
       }
