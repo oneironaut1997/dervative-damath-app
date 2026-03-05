@@ -20,6 +20,9 @@ class DraggablePiece extends StatefulWidget {
   /// Whether the chip is currently draggable (based on turn)
   final bool isDraggable;
 
+  /// Board rotation (0 or 180 degrees) to adjust label orientation
+  final double boardRotation;
+
   const DraggablePiece({
     super.key,
     required this.chip,
@@ -27,6 +30,7 @@ class DraggablePiece extends StatefulWidget {
     this.isValidTarget,
     this.size = 60.0,
     this.isDraggable = true,
+    this.boardRotation = 0,
   });
 
   @override
@@ -61,7 +65,7 @@ class _DraggablePieceState extends State<DraggablePiece>
   Widget build(BuildContext context) {
     if (!widget.isDraggable) {
       // Return non-draggable chip widget
-      return ChipWidget(chip: widget.chip);
+      return ChipWidget(chip: widget.chip, boardRotation: widget.boardRotation);
     }
 
     return Draggable<ChipModel>(
@@ -98,12 +102,12 @@ class _DraggablePieceState extends State<DraggablePiece>
       ),
       childWhenDragging: Opacity(
         opacity: 0.3,
-        child: ChipWidget(chip: widget.chip),
+        child: ChipWidget(chip: widget.chip, boardRotation: widget.boardRotation),
       ),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 150),
         opacity: _isDragging ? 0.5 : 1.0,
-        child: ChipWidget(chip: widget.chip),
+        child: ChipWidget(chip: widget.chip, boardRotation: widget.boardRotation),
       ),
     );
   }
@@ -122,7 +126,7 @@ class _DraggablePieceState extends State<DraggablePiece>
           ),
         ],
       ),
-      child: ChipWidget(chip: widget.chip),
+      child: ChipWidget(chip: widget.chip, boardRotation: widget.boardRotation),
     );
   }
 }

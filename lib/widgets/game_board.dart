@@ -297,7 +297,7 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   /// Build chip with glow effect for chips that can capture
-  Widget _buildChipWithGlow(ChipModel chip, double cellSize) {
+  Widget _buildChipWithGlow(ChipModel chip, double cellSize, double boardRotation) {
     final bool canCapture = gameLogic.chipCanCapture(chip);
     final bool shouldGlow = isCaptureAvailable && !mustContinueCapturing && canCapture && chip.owner == currentPlayer;
     
@@ -318,6 +318,7 @@ class _GameBoardState extends State<GameBoard> {
         chip: chip,
         isDraggable: chip.owner == currentPlayer && !isGameOver && _canChipMove(chip),
         size: cellSize * 0.8,
+        boardRotation: boardRotation,
       ),
     );
   }
@@ -842,7 +843,7 @@ class _GameBoardState extends State<GameBoard> {
                                           ),
                                         ),
                                       if (chipHere != null)
-                                        _buildChipWithGlow(chipHere, cellSize),
+                                        _buildChipWithGlow(chipHere, cellSize, _boardRotation),
                                     ],
                                   ),
                                 ),

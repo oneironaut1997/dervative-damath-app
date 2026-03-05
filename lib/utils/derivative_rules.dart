@@ -165,9 +165,7 @@ class DerivativeRules {
 
       case OperationType.divide:
         // Quotient rule: d/dx(f ÷ g) = (f' × g - f × g') / g²
-        // For simplicity, we return the derivative of the result polynomial
-        // The actual quotient rule computation would be more complex
-        return powerRule(left);
+        return _quotientRule(left, right);
     }
   }
 
@@ -218,6 +216,59 @@ class DerivativeRules {
     // Remove zero coefficients
     result.removeWhere((key, value) => value == 0);
 
+    return result;
+  }
+
+  /// Applies the quotient rule for division.
+  ///
+  /// Quotient rule: d/dx(f ÷ g) = (f' × g - f × g') / g²
+  ///
+  /// [left] - The numerator polynomial (f)
+  /// [right] - The denominator polynomial (g)
+  /// Returns the derivative of (f ÷ g)
+  static Map<int, int> _quotientRule(
+    Map<int, int> left,
+    Map<int, int> right,
+  ) {
+    // Compute f' (derivative of left)
+    final leftDerivative = powerRule(left);
+    
+    // Compute g' (derivative of right)
+    final rightDerivative = powerRule(right);
+    
+    // Compute g² (right squared)
+    final rightSquared = _multiplyPolynomials(right, right);
+    
+    // Compute f' × g
+    final term1 = _multiplyPolynomials(leftDerivative, right);
+    
+    // Compute f × g'
+    final term2 = _multiplyPolynomials(left, rightDerivative);
+    
+    // Compute (f' × g - f × g')
+    final numerator = _combinePolynomials(term1, term2, -1);
+    
+    // Compute (f' × g - f × g') / g²
+    // Since we're working with polynomial representations,
+    // we divide the exponents by subtracting the right's max exponent
+    final result = <int, int>{};
+    
+    // Find the max exponent in g²
+    int divisorExp = 0;
+    for (final entry in rightSquared.entries) {
+      if (entry.key > divisorExp) {
+        divisorExp = entry.key;
+      }
+    }
+    
+    // Each term in numerator gets divided by subtracting divisorExp from exponent
+    for (final entry in numerator.entries) {
+      final newExp = entry.key - divisorExp;
+      if (newExp >= 0) {
+        result[newExp] = entry.value;
+      }
+    }
+    
     return result;
   }
 

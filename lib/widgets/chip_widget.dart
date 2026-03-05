@@ -3,8 +3,13 @@ import '../models/chip_model.dart';
 
 class ChipWidget extends StatelessWidget {
   final ChipModel chip;
+  final double boardRotation; // Board rotation (0 or 180 degrees)
 
-  const ChipWidget({super.key, required this.chip});
+  const ChipWidget({
+    super.key,
+    required this.chip,
+    this.boardRotation = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +21,10 @@ class ChipWidget extends StatelessWidget {
     final Color borderColor = isDama ? Colors.amber : Colors.black;
     final double borderWidth = isDama ? 3.0 : 2.0;
     
-    // Determine if this is player 2's chip (for upside-down label)
-    final bool isPlayer2 = chip.owner == 2;
+    // Calculate label rotation to counteract board rotation
+    // Both players should see all chips upright
+    // When board rotates 180°, ALL chips need to rotate 180° to appear upright
+    final int labelRotation = (boardRotation > 0) ? 2 : 0;
     
     // Build the chip content (polynomial expression and optional crown)
     Widget chipContent = Stack(
@@ -27,7 +34,7 @@ class ChipWidget extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown, // Ensures text is scaled to fit the available space
           child: RotatedBox(
-            quarterTurns: isPlayer2 ? 2 : 0, // Rotate 180 degrees for player 2
+            quarterTurns: labelRotation, // Rotate 180 degrees for player 2 when board is rotated
             child: RichText(
               textAlign: TextAlign.center,
               text: TextSpan(

@@ -429,15 +429,49 @@ class ScoreCalculator {
 
       case '÷':
       case '/':
-        // Division: only keep left operand's terms (simplified)
-        for (final entry in left.entries) {
-          result[entry.key] = entry.value;
-        }
+        // Division: perform polynomial division left ÷ right
+        // Returns the quotient polynomial
+        result[_dividePolynomials(left, right)] = 1;
         break;
     }
 
     result.removeWhere((key, value) => value == 0);
     return result;
+  }
+
+  /// Divides two polynomials (left ÷ right).
+  ///
+  /// Uses polynomial long division to compute the quotient.
+  /// Returns the exponent of the result polynomial (since division
+  /// produces a single term in this game context).
+  ///
+  /// [left] - The dividend (numerator)
+  /// [right] - The divisor (denominator)
+  /// Returns the exponent of the quotient term
+  static int _dividePolynomials(Map<int, int> left, Map<int, int> right) {
+    if (right.isEmpty) return 0;
+    
+    // Find the highest exponent in left (dividend)
+    int leftMaxExp = 0;
+    for (final entry in left.entries) {
+      if (entry.key > leftMaxExp && entry.value != 0) {
+        leftMaxExp = entry.key;
+      }
+    }
+    
+    // Find the highest exponent in right (divisor)
+    int rightMaxExp = 0;
+    for (final entry in right.entries) {
+      if (entry.key > rightMaxExp && entry.value != 0) {
+        rightMaxExp = entry.key;
+      }
+    }
+    
+    // Cannot divide by zero polynomial
+    if (rightMaxExp == 0 && (right[0] == null || right[0] == 0)) return 0;
+    
+    // Compute quotient exponent: leftMaxExp - rightMaxExp
+    return leftMaxExp - rightMaxExp;
   }
 
   /// Calculates the end-of-game score from remaining chips.
@@ -473,7 +507,8 @@ class ScoreCalculator {
   static const int captureBonus = 2;
 
   /// Bonus points for promoting to Dama (legacy)
-  static const int promotionBonus = 3;
+  // static const int promotionBonus = 3;
+  static const int promotionBonus = 1000;
 
   /// Bonus points per additional capture in a chain (legacy)
   static const int chainCaptureBonus = 1;
